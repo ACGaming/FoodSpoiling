@@ -1,0 +1,221 @@
+package mod.acgaming.foodspoiling;
+
+import java.util.Map;
+import java.util.Random;
+
+import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+
+@Mod.EventBusSubscriber(modid = FoodSpoiling.MOD_ID)
+public class FoodSpoilingLogic
+{
+    private static final String TAG_SPOIL_TICKS = "SpoilTicks";
+    private static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
+    private static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
+    private static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
+
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event)
+    {
+        if (event.phase != TickEvent.PlayerTickEvent.Phase.END) return;
+
+        EntityPlayer player = event.player;
+        if (player.world.isRemote || player.isCreative()) return;
+        if (player.world.getTotalWorldTime() % FoodSpoilingConfig.GENERAL.checkIntervalInTicks != 0) return;
+
+        InventoryPlayer inventory = player.inventory;
+
+        for (int i = 0; i < inventory.mainInventory.size(); i++)
+        {
+            ItemStack stack = inventory.mainInventory.get(i);
+            if (!canRot(stack))
+            {
+                continue;
+            }
+
+            incrementRot(player, stack, i);
+
+            if (shouldWarnPlayer(player, stack))
+            {
+                sendWarningMessage(player);
+            }
+        }
+
+        handleOtherInventories(player);
+    }
+
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void onItemTooltip(ItemTooltipEvent event)
+    {
+        ItemStack stack = event.getItemStack();
+        if (!canRot(stack) || !FoodSpoilingConfig.TOOLTIPS.showFoodTooltip) return;
+
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        int spoilTicks = tag.getInteger(TAG_SPOIL_TICKS);
+        int daysToRot = getDaysToRot(stack);
+        int maxSpoilTicks = daysToRot * FoodSpoilingConfig.GENERAL.dayLengthInTicks;
+
+        if (daysToRot < 0)
+        {
+            event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
+        }
+        else
+        {
+            String tooltip = "";
+            int daysRemaining = (maxSpoilTicks - spoilTicks) / FoodSpoilingConfig.GENERAL.dayLengthInTicks;
+            int percentageRemaining = 100 - (spoilTicks * 100 / maxSpoilTicks);
+            if (FoodSpoilingConfig.TOOLTIPS.tooltipFoodDays)
+            {
+                tooltip = daysRemaining > 0 ? I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining) : I18n.format("tooltip.foodspoiling.good_for_less_than_day");
+
+                if (FoodSpoilingConfig.TOOLTIPS.tooltipFoodPercent)
+                {
+                    tooltip = tooltip + " (" + I18n.format("tooltip.foodspoiling.good_for_days_percentage", percentageRemaining) + ")";
+                }
+            }
+            else if (FoodSpoilingConfig.TOOLTIPS.tooltipFoodPercent)
+            {
+                tooltip = I18n.format("tooltip.foodspoiling.good_for_days_percentage", percentageRemaining);
+            }
+            if (!tooltip.isEmpty())
+            {
+                event.getToolTip().add(tooltip);
+            }
+        }
+    }
+
+    public static void initializeFoodMaps()
+    {
+        for (String entry : FoodSpoilingConfig.ROTTING.daysToRot)
+        {
+            String[] parts = entry.split(",");
+            if (parts.length >= 2)
+            {
+                String itemIdentifier = parts[0];
+                String rotDaysString = parts[parts.length - 1];
+                try
+                {
+                    int rotDays = Integer.parseInt(rotDaysString.trim());
+                    Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemIdentifier));
+                    if (item != null) FOOD_EXPIRATION_DAYS.put(item, rotDays);
+                    if (parts.length > 2)
+                    {
+                        String itemReplacementIdentifier = parts[1];
+                        Item itemReplacement = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemReplacementIdentifier));
+                        if (item != null && itemReplacement != null) FOOD_CONVERSIONS.put(item, itemReplacement);
+                    }
+                }
+                catch (Exception e)
+                {
+                    FoodSpoiling.LOGGER.error("Invalid entry for rot days in config: {}", entry);
+                }
+            }
+            else FoodSpoiling.LOGGER.error("Invalid entry for rot days in config: {}", entry);
+        }
+    }
+
+    private static boolean canRot(ItemStack stack)
+    {
+        return FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
+    }
+
+    private static void incrementRot(EntityPlayer player, ItemStack stack, int inventorySlot)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        int spoilTicks = tag.getInteger(TAG_SPOIL_TICKS);
+        int daysToRot = getDaysToRot(stack);
+
+        if (daysToRot > 0)
+        {
+            int maxSpoilTicks = daysToRot * FoodSpoilingConfig.GENERAL.dayLengthInTicks;
+
+            if (spoilTicks < maxSpoilTicks)
+            {
+                tag.setInteger(TAG_SPOIL_TICKS, spoilTicks + FoodSpoilingConfig.GENERAL.checkIntervalInTicks);
+            }
+            else if (FOOD_CONVERSIONS.containsKey(stack.getItem()))
+            {
+                Item itemReplacement = FOOD_CONVERSIONS.get(stack.getItem());
+
+                if (itemReplacement != null)
+                {
+                    player.inventory.setInventorySlotContents(inventorySlot, new ItemStack(itemReplacement, stack.getCount()));
+                }
+            }
+        }
+    }
+
+    private static boolean shouldWarnPlayer(EntityPlayer player, ItemStack stack)
+    {
+        if (!FoodSpoilingConfig.WARNING_MESSAGE.sendMessages) return false;
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        int spoilTicks = tag.getInteger(TAG_SPOIL_TICKS);
+        int daysToRot = getDaysToRot(stack);
+        int maxSpoilTicks = daysToRot * FoodSpoilingConfig.GENERAL.dayLengthInTicks;
+        if (daysToRot < 0) return false;
+        int spoilPercentage = 100 - (spoilTicks * 100 / maxSpoilTicks);
+        if (spoilPercentage <= FoodSpoilingConfig.WARNING_MESSAGE.messagePercentage)
+        {
+            long currentTime = System.currentTimeMillis();
+            Long lastWarned = WARNING_TIMES.getOrDefault(player, 0L);
+            if (currentTime - lastWarned >= FoodSpoilingConfig.WARNING_MESSAGE.messageCooldownMinutes * 60000L)
+            {
+                WARNING_TIMES.put(player, currentTime);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void sendWarningMessage(EntityPlayer player)
+    {
+        String message = getRandomWarningMessage(player.world.rand);
+        if (FoodSpoilingConfig.WARNING_MESSAGE.sendMessagesActionBar)
+        {
+            player.sendStatusMessage(new TextComponentString(message), true);
+        }
+        else
+        {
+            player.sendMessage(new TextComponentString(message));
+        }
+    }
+
+    private static int getDaysToRot(ItemStack stack)
+    {
+        if (stack != null)
+        {
+            Item item = stack.getItem();
+            if (FOOD_EXPIRATION_DAYS.containsKey(item))
+            {
+                return FOOD_EXPIRATION_DAYS.get(item);
+            }
+        }
+        return -1;
+    }
+
+    private static String getRandomWarningMessage(Random rand)
+    {
+        return FoodSpoilingConfig.WARNING_MESSAGE.randomMessages[rand.nextInt(FoodSpoilingConfig.WARNING_MESSAGE.randomMessages.length)];
+    }
+
+    private static void handleOtherInventories(EntityPlayer player)
+    {}
+}

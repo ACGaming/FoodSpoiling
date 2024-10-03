@@ -1,0 +1,12 @@
+[
+  {
+    "modid": "foodspoiling",
+    "name": "Food Spoiling",
+    "description": "Spoiled for choice!",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/ACGaming/FoodSpoiling",
+    "authorList": ["ACGaming"],
+    "credits": "Ski_ for commissioning"
+  }
+]
