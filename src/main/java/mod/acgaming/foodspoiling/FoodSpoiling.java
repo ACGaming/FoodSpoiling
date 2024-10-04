@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Logger;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 
+import mod.acgaming.foodspoiling.logic.FSLogic;
+
 @Mod(modid = FoodSpoiling.MOD_ID, name = FoodSpoiling.NAME, version = FoodSpoiling.VERSION, acceptedMinecraftVersions = FoodSpoiling.ACCEPTED_VERSIONS)
 public class FoodSpoiling
 {
@@ -17,6 +19,6 @@ public class FoodSpoiling
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event)
     {
-        FoodSpoilingLogic.initializeFoodMaps();
+        FSLogic.initializeFoodMaps();
     }
 }

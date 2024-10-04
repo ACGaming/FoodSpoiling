@@ -1,4 +1,4 @@
-package mod.acgaming.foodspoiling;
+package mod.acgaming.foodspoiling.config;
 
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
@@ -6,8 +6,11 @@ import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import mod.acgaming.foodspoiling.FoodSpoiling;
+import mod.acgaming.foodspoiling.logic.FSLogic;
+
 @Config(modid = FoodSpoiling.MOD_ID, name = "FoodSpoiling")
-public class FoodSpoilingConfig
+public class FSConfig
 {
     @Config.Comment("General settings for the Food Spoiling mod")
     public static final General GENERAL = new General();
@@ -121,7 +124,7 @@ public class FoodSpoilingConfig
             if (event.getModID().equals(FoodSpoiling.MOD_ID))
             {
                 ConfigManager.sync(FoodSpoiling.MOD_ID, Config.Type.INSTANCE);
-                FoodSpoilingLogic.initializeFoodMaps();
+                FSLogic.initializeFoodMaps();
             }
         }
     }
