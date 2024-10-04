@@ -96,34 +96,47 @@ public class FSLogic
         return -1;
     }
 
+    public static void setCreationTime(ItemStack stack, long creationTime)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        tag.setLong(TAG_CREATION_TIME, creationTime);
+    }
+
+    public static long getCreationTime(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        return tag.getLong(TAG_CREATION_TIME);
+    }
+
     private static void updateRot(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
 
         if (!tag.hasKey(TAG_CREATION_TIME))
         {
-            tag.setLong(TAG_CREATION_TIME, currentWorldTime);
-            return;
+            setCreationTime(stack, currentWorldTime);
         }
-
-        long creationTime = tag.getLong(TAG_CREATION_TIME);
-        int daysToRot = getDaysToRot(stack);
-
-        if (daysToRot > 0)
+        else
         {
-            int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
+            long creationTime = getCreationTime(stack);
+            int daysToRot = getDaysToRot(stack);
 
-            long elapsedTime = currentWorldTime - creationTime;
-
-            if (elapsedTime >= maxSpoilTicks && FOOD_CONVERSIONS.containsKey(stack.getItem()))
+            if (daysToRot > 0)
             {
-                Item itemReplacement = FOOD_CONVERSIONS.get(stack.getItem());
+                int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
 
-                if (itemReplacement != null)
+                long elapsedTime = currentWorldTime - creationTime;
+
+                if (elapsedTime >= maxSpoilTicks && FOOD_CONVERSIONS.containsKey(stack.getItem()))
                 {
-                    ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
-                    player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
-                    player.openContainer.detectAndSendChanges();
+                    Item itemReplacement = FOOD_CONVERSIONS.get(stack.getItem());
+
+                    if (itemReplacement != null)
+                    {
+                        ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
+                        player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
+                        player.openContainer.detectAndSendChanges();
+                    }
                 }
             }
         }
