@@ -12,6 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -34,27 +35,14 @@ public class FoodSpoilingLogic
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event)
     {
-        if (event.phase != TickEvent.PlayerTickEvent.Phase.END) return;
+        if (event.phase != TickEvent.PlayerTickEvent.Phase.END || event.player.world.getTotalWorldTime() % FoodSpoilingConfig.GENERAL.checkIntervalInTicks != 0) return;
+        updateInventory(event.player);
+    }
 
-        EntityPlayer player = event.player;
-        if (player.world.isRemote || (player.isCreative() && !FoodSpoilingConfig.ROTTING.rotInCreative)) return;
-        if (player.world.getTotalWorldTime() % FoodSpoilingConfig.GENERAL.checkIntervalInTicks != 0) return;
-
-        long currentWorldTime = player.world.getTotalWorldTime();
-
-        for (int i = 0; i < player.openContainer.inventorySlots.size(); i++)
-        {
-            Slot slot = player.openContainer.inventorySlots.get(i);
-            ItemStack stack = slot.getStack();
-            if (!canRot(stack)) continue;
-
-            updateRot(player, stack, i, currentWorldTime);
-
-            if (shouldWarnPlayer(player, stack, currentWorldTime))
-            {
-                sendWarningMessage(player);
-            }
-        }
+    @SubscribeEvent
+    public static void onContainerOpen(PlayerContainerEvent.Open event)
+    {
+        updateInventory(event.getEntityPlayer());
     }
 
     @SideOnly(Side.CLIENT)
@@ -139,6 +127,27 @@ public class FoodSpoilingLogic
         return FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
     }
 
+    private static void updateInventory(EntityPlayer player)
+    {
+        if (player.world.isRemote || (player.isCreative() && !FoodSpoilingConfig.ROTTING.rotInCreative)) return;
+
+        long currentWorldTime = player.world.getTotalWorldTime();
+
+        for (int i = 0; i < player.openContainer.inventorySlots.size(); i++)
+        {
+            Slot slot = player.openContainer.inventorySlots.get(i);
+            ItemStack stack = slot.getStack();
+            if (!canRot(stack)) continue;
+
+            updateRot(player, stack, i, currentWorldTime);
+
+            if (shouldWarnPlayer(player, stack, currentWorldTime))
+            {
+                sendWarningMessage(player);
+            }
+        }
+    }
+
     private static void updateRot(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
@@ -170,6 +179,19 @@ public class FoodSpoilingLogic
                 }
             }
         }
+    }
+
+    private static int getDaysToRot(ItemStack stack)
+    {
+        if (stack != null)
+        {
+            Item item = stack.getItem();
+            if (FOOD_EXPIRATION_DAYS.containsKey(item))
+            {
+                return FOOD_EXPIRATION_DAYS.get(item);
+            }
+        }
+        return -1;
     }
 
     private static boolean shouldWarnPlayer(EntityPlayer player, ItemStack stack, long currentWorldTime)
@@ -212,19 +234,6 @@ public class FoodSpoilingLogic
         {
             player.sendMessage(new TextComponentString(message));
         }
-    }
-
-    private static int getDaysToRot(ItemStack stack)
-    {
-        if (stack != null)
-        {
-            Item item = stack.getItem();
-            if (FOOD_EXPIRATION_DAYS.containsKey(item))
-            {
-                return FOOD_EXPIRATION_DAYS.get(item);
-            }
-        }
-        return -1;
     }
 
     private static String getRandomWarningMessage(Random rand)

@@ -7,6 +7,4 @@ A simple mod that checks for food items in the player's inventory or backpack, t
 ### TODO:
 
 * Merge partially spoiled food stacks
-* Handle other inventories like backpacks
-* Disable re-equip animation when holding spoiling food
 * Render food increasingly rotten

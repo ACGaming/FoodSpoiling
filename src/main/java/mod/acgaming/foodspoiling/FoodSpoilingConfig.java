@@ -25,7 +25,7 @@ public class FoodSpoilingConfig
     {
         @Config.Name("Check Interval")
         @Config.Comment("How often player food items are evaluated in ticks")
-        public int checkIntervalInTicks = 20;
+        public int checkIntervalInTicks = 40;
 
         @Config.Name("Day Length")
         @Config.Comment("Length of each day in ticks")
