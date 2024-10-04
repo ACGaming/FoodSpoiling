@@ -25,7 +25,7 @@ public class FoodSpoilingConfig
     {
         @Config.Name("Check Interval")
         @Config.Comment("How often player food items are evaluated in ticks")
-        public int checkIntervalInTicks = 100;
+        public int checkIntervalInTicks = 20;
 
         @Config.Name("Day Length")
         @Config.Comment("Length of each day in ticks")
@@ -62,6 +62,10 @@ public class FoodSpoilingConfig
                 "minecraft:apple,minecraft:air,5",
                 "minecraft:golden_apple,-1"
             };
+
+        @Config.Name("Rot In Creative Mode")
+        @Config.Comment("Allows items specified in 'Days To Rot' to rot in creative mode")
+        public boolean rotInCreative = false;
     }
 
     public static class WarningMessage
