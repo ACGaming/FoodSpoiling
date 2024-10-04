@@ -18,7 +18,7 @@ public class FSClientEvents
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event)
     {
-        if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null) return;
+        if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null || (event.getEntityPlayer().isCreative() && !FSConfig.ROTTING.rotInCreative)) return;
 
         ItemStack stack = event.getItemStack();
         if (!FSLogic.canRot(stack)) return;
