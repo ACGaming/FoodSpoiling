@@ -5,7 +5,7 @@ import java.util.Random;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -40,15 +40,11 @@ public class FoodSpoilingLogic
         if (player.world.isRemote || player.isCreative()) return;
         if (player.world.getTotalWorldTime() % FoodSpoilingConfig.GENERAL.checkIntervalInTicks != 0) return;
 
-        InventoryPlayer inventory = player.inventory;
-
-        for (int i = 0; i < inventory.mainInventory.size(); i++)
+        for (int i = 0; i < player.openContainer.inventorySlots.size(); i++)
         {
-            ItemStack stack = inventory.mainInventory.get(i);
-            if (!canRot(stack))
-            {
-                continue;
-            }
+            Slot slot = player.openContainer.inventorySlots.get(i);
+            ItemStack stack = slot.getStack();
+            if (!canRot(stack)) continue;
 
             incrementRot(player, stack, i);
 
@@ -57,8 +53,6 @@ public class FoodSpoilingLogic
                 sendWarningMessage(player);
             }
         }
-
-        handleOtherInventories(player);
     }
 
     @SideOnly(Side.CLIENT)
@@ -157,7 +151,9 @@ public class FoodSpoilingLogic
 
                 if (itemReplacement != null)
                 {
-                    player.inventory.setInventorySlotContents(inventorySlot, new ItemStack(itemReplacement, stack.getCount()));
+                    ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
+                    player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
+                    player.openContainer.detectAndSendChanges();
                 }
             }
         }
@@ -213,9 +209,7 @@ public class FoodSpoilingLogic
 
     private static String getRandomWarningMessage(Random rand)
     {
-        return FoodSpoilingConfig.WARNING_MESSAGE.randomMessages[rand.nextInt(FoodSpoilingConfig.WARNING_MESSAGE.randomMessages.length)];
+        String[] messages = FoodSpoilingConfig.WARNING_MESSAGE.randomMessages;
+        return messages[rand.nextInt(messages.length)];
     }
-
-    private static void handleOtherInventories(EntityPlayer player)
-    {}
 }
