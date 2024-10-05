@@ -31,9 +31,9 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
     @Override
     public ItemStack getCraftingResult(@Nonnull InventoryCrafting inv)
     {
-        ItemStack prevMatch = ItemStack.EMPTY;
+        ItemStack combinedStack = ItemStack.EMPTY;
         int matches = 0;
-        long latestDate = Long.MAX_VALUE;
+        long oldestDate = Long.MAX_VALUE;
 
         for (int slot = 0; slot < inv.getSizeInventory(); slot++)
         {
@@ -43,33 +43,35 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
 
             if (FSLogic.canRot(stack))
             {
-                if (prevMatch.isEmpty()) prevMatch = stack.copy();
+                if (combinedStack.isEmpty())
+                {
+                    combinedStack = stack.copy();
+                }
                 else
                 {
-                    long date = FSLogic.getCreationTime(stack);
-                    latestDate = Math.min(latestDate, date);
-                    FSLogic.setCreationTime(prevMatch, date);
-                    if (stack.getItem() != prevMatch.getItem() || stack.getMetadata() != prevMatch.getMetadata() || !ItemStack.areItemStackTagsEqual(prevMatch, stack))
+                    if (!ItemStack.areItemsEqual(stack, combinedStack))
                     {
                         return ItemStack.EMPTY;
                     }
                 }
+
+                long creationTime = FSLogic.getCreationTime(stack);
+                oldestDate = Math.min(oldestDate, creationTime);
                 matches++;
             }
         }
 
-        if (matches > prevMatch.getMaxStackSize()) return ItemStack.EMPTY;
+        if (matches < 2 || matches > combinedStack.getMaxStackSize()) return ItemStack.EMPTY;
 
-        prevMatch.setCount(matches);
-        FSLogic.setCreationTime(prevMatch, latestDate);
-
-        return matches >= 2 ? prevMatch : ItemStack.EMPTY;
+        combinedStack.setCount(matches);
+        FSLogic.setCreationTime(combinedStack, oldestDate);
+        return combinedStack;
     }
 
     @Override
     public boolean matches(InventoryCrafting inv, World world)
     {
-        ItemStack prevMatch = ItemStack.EMPTY;
+        ItemStack firstItem = ItemStack.EMPTY;
         int matches = 0;
 
         for (int slot = 0; slot < inv.getSizeInventory(); slot++)
@@ -80,11 +82,13 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
 
             if (FSLogic.canRot(stack))
             {
-                if (prevMatch.isEmpty()) prevMatch = stack.copy();
+                if (firstItem.isEmpty())
+                {
+                    firstItem = stack.copy();
+                }
                 else
                 {
-                    FSLogic.setCreationTime(prevMatch, Math.min(FSLogic.getCreationTime(prevMatch), FSLogic.getCreationTime(stack)));
-                    if (stack.getItem() != prevMatch.getItem() || stack.getMetadata() != prevMatch.getMetadata() || !ItemStack.areItemStackTagsEqual(prevMatch, stack))
+                    if (!ItemStack.areItemsEqual(stack, firstItem))
                     {
                         return false;
                     }
@@ -93,8 +97,6 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
             }
         }
 
-        if (matches > prevMatch.getMaxStackSize()) return false;
-
-        return matches >= 2;
+        return matches >= 2 && matches <= firstItem.getMaxStackSize();
     }
 }
