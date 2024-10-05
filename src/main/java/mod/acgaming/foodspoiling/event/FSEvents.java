@@ -32,6 +32,7 @@ public class FSEvents
     @SubscribeEvent
     public static void onRegisterRecipe(RegistryEvent.Register<IRecipe> event)
     {
+        if (!FSConfig.ROTTING.allowFoodMerge) return;
         event.getRegistry().register(new FSCombiningRecipe().setRegistryName(new ResourceLocation(FoodSpoiling.MOD_ID, "food_combining")));
     }
 }

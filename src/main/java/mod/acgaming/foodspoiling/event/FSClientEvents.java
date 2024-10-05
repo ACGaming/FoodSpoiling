@@ -70,6 +70,8 @@ public class FSClientEvents
     @SubscribeEvent
     public static void onRegisterColorHandlerItems(ColorHandlerEvent.Item event)
     {
+        if (!FSConfig.ROTTING.renderRottenState) return;
+
         ItemColors itemColors = event.getItemColors();
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {

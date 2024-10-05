@@ -37,6 +37,7 @@ public class FSConfig
 
     public static class Rotting
     {
+        @Config.RequiresMcRestart
         @Config.Name("Allow Food Merge")
         @Config.Comment("Allows merging the same rotting items with different rot times (uses worse food rot time)")
         public boolean allowFoodMerge = true;
@@ -69,6 +70,11 @@ public class FSConfig
         @Config.Name("Rot In Creative Mode")
         @Config.Comment("Allows items specified in 'Days To Rot' to rot in creative mode")
         public boolean rotInCreative = false;
+
+        @Config.RequiresMcRestart
+        @Config.Name("Render Rotten State")
+        @Config.Comment("Applies an increasing green tint on food items as they rot")
+        public boolean renderRottenState = true;
     }
 
     public static class WarningMessage
