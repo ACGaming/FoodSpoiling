@@ -23,9 +23,9 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 public class FSLogic
 {
     public static final String TAG_CREATION_TIME = "CreationTime";
-    private static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
-    private static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
-    private static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
+    public static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
+    public static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
+    public static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
 
     public static void initializeFoodMaps()
     {
