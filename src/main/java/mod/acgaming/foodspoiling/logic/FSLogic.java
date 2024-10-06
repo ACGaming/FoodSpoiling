@@ -8,12 +8,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraftforge.fml.common.Mod;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
 import mod.acgaming.foodspoiling.config.FSConfig;
 
-@Mod.EventBusSubscriber(modid = FoodSpoiling.MOD_ID)
 public class FSLogic
 {
     public static final String TAG_CREATION_TIME = "CreationTime";
