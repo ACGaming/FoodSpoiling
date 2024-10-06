@@ -78,7 +78,7 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
         {
             ItemStack stack = inv.getStackInSlot(slot);
 
-            if (stack.isEmpty()) continue;
+            if (stack.isEmpty() || !FSLogic.hasCreationTime(stack)) continue;
 
             if (FSLogic.canRot(stack))
             {
