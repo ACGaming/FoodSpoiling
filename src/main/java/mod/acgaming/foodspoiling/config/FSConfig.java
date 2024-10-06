@@ -27,8 +27,12 @@ public class FSConfig
     public static class General
     {
         @Config.Name("Check Interval")
-        @Config.Comment("How often player food items are evaluated in ticks")
-        public int checkIntervalInTicks = 40;
+        @Config.Comment
+            ({
+                "How often player food items are evaluated in ticks",
+                "Increase this value to allow for easier stacking"
+            })
+        public int checkIntervalInTicks = 100;
 
         @Config.Name("Day Length")
         @Config.Comment("Length of each day in ticks")
