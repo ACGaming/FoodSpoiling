@@ -66,6 +66,10 @@ public class FSClientEvents
                 event.getToolTip().add(tooltip);
             }
         }
+        if (event.getFlags().isAdvanced())
+        {
+            event.getToolTip().add("CreationTime: " + creationTime);
+        }
     }
 
     @SubscribeEvent
