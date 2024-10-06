@@ -7,7 +7,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
-import mod.acgaming.foodspoiling.logic.FSLogic;
+import mod.acgaming.foodspoiling.logic.FSMaps;
 
 @Config(modid = FoodSpoiling.MOD_ID, name = "FoodSpoiling")
 public class FSConfig
@@ -46,7 +46,8 @@ public class FSConfig
         @Config.Comment
             ({
                 "Food items do not decay by default, and must be added below",
-                "Format: modid:fooditem,modid:rottenitem,days  |OR|  modid:fooditem,-1  for explicit tooltip to state \"Does not rot\"",
+                "Format: 'modid:fooditem,modid:rottenitem,days' |OR| 'modid:fooditem,-1' for explicit tooltip to state \"Does not rot\"",
+                "Instead of 'modid', 'ore' can be used as a namespace for ore dictionary names",
                 "Any item added here will be given a tooltip that says \"Good for % days\" when unspoiled"
             })
         public String[] daysToRot =
@@ -130,7 +131,7 @@ public class FSConfig
             if (event.getModID().equals(FoodSpoiling.MOD_ID))
             {
                 ConfigManager.sync(FoodSpoiling.MOD_ID, Config.Type.INSTANCE);
-                FSLogic.initializeFoodMaps();
+                FSMaps.initializeFoodMaps();
             }
         }
     }

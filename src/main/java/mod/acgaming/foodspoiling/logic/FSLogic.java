@@ -1,6 +1,5 @@
 package mod.acgaming.foodspoiling.logic;
 
-import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -8,14 +7,9 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mod.acgaming.foodspoiling.FoodSpoiling;
 import mod.acgaming.foodspoiling.config.FSConfig;
 
@@ -23,43 +17,10 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 public class FSLogic
 {
     public static final String TAG_CREATION_TIME = "CreationTime";
-    public static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
-    public static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
-    public static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
-
-    public static void initializeFoodMaps()
-    {
-        for (String entry : FSConfig.ROTTING.daysToRot)
-        {
-            String[] parts = entry.split(",");
-            if (parts.length >= 2)
-            {
-                String itemIdentifier = parts[0];
-                String rotDaysString = parts[parts.length - 1];
-                try
-                {
-                    int rotDays = Integer.parseInt(rotDaysString.trim());
-                    Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemIdentifier));
-                    if (item != null) FOOD_EXPIRATION_DAYS.put(item, rotDays);
-                    if (parts.length > 2)
-                    {
-                        String itemReplacementIdentifier = parts[1];
-                        Item itemReplacement = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemReplacementIdentifier));
-                        if (item != null && itemReplacement != null) FOOD_CONVERSIONS.put(item, itemReplacement);
-                    }
-                }
-                catch (Exception e)
-                {
-                    FoodSpoiling.LOGGER.error("Invalid entry for rot days in config: {}", entry);
-                }
-            }
-            else FoodSpoiling.LOGGER.error("Invalid entry for rot days in config: {}", entry);
-        }
-    }
 
     public static boolean canRot(ItemStack stack)
     {
-        return FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
+        return FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
     }
 
     public static void updateInventory(EntityPlayer player)
@@ -88,9 +49,9 @@ public class FSLogic
         if (stack != null)
         {
             Item item = stack.getItem();
-            if (FOOD_EXPIRATION_DAYS.containsKey(item))
+            if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
-                return FOOD_EXPIRATION_DAYS.get(item);
+                return FSMaps.FOOD_EXPIRATION_DAYS.get(item);
             }
         }
         return -1;
@@ -127,9 +88,9 @@ public class FSLogic
 
                 long elapsedTime = currentWorldTime - creationTime;
 
-                if (elapsedTime >= maxSpoilTicks && FOOD_CONVERSIONS.containsKey(stack.getItem()))
+                if (elapsedTime >= maxSpoilTicks && FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
                 {
-                    Item itemReplacement = FOOD_CONVERSIONS.get(stack.getItem());
+                    Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
 
                     if (itemReplacement != null)
                     {
@@ -161,10 +122,10 @@ public class FSLogic
         if (spoilPercentage <= FSConfig.WARNING_MESSAGE.messagePercentage)
         {
             long currentTime = System.currentTimeMillis();
-            Long lastWarned = WARNING_TIMES.getOrDefault(player, 0L);
+            Long lastWarned = FSMaps.WARNING_TIMES.getOrDefault(player, 0L);
             if (currentTime - lastWarned >= FSConfig.WARNING_MESSAGE.messageCooldownMinutes * 60000L)
             {
-                WARNING_TIMES.put(player, currentTime);
+                FSMaps.WARNING_TIMES.put(player, currentTime);
                 return true;
             }
         }
