@@ -64,7 +64,7 @@ public class FSClientEvents
                 event.getToolTip().add(tooltip);
             }
         }
-        if (event.getFlags().isAdvanced() && tag.hasKey(FSLogic.TAG_CREATION_TIME))
+        if (event.getFlags().isAdvanced() && FSLogic.hasCreationTime(stack))
         {
             event.getToolTip().add("CreationTime: " + creationTime);
         }
@@ -78,18 +78,12 @@ public class FSClientEvents
         ItemColors itemColors = event.getItemColors();
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
-            if (!FSLogic.canRot(stack))
+            if (!FSLogic.canRot(stack) || !FSLogic.hasCreationTime(stack))
             {
                 return 0xFFFFFF;
             }
 
-            NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-            if (!tag.hasKey(FSLogic.TAG_CREATION_TIME))
-            {
-                return 0xFFFFFF;
-            }
-
-            long spoilTime = tag.getLong(FSLogic.TAG_CREATION_TIME);
+            long spoilTime = FSLogic.getCreationTime(stack);
             long currentTime = Minecraft.getMinecraft().world.getTotalWorldTime();
             int daysToRot = FSLogic.getDaysToRot(stack);
             int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;

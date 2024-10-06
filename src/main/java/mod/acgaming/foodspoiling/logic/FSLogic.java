@@ -100,6 +100,19 @@ public class FSLogic
     }
 
     /**
+     * Checks if the given ItemStack has a creation time set. If it does not, the given stack cannot be checked for
+     * rotting.
+     *
+     * @param stack the stack to check
+     * @return true if the stack has a creation time, false otherwise
+     */
+    public static boolean hasCreationTime(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        return tag.hasKey(TAG_CREATION_TIME);
+    }
+
+    /**
      * Updates the rot time of the given {@link ItemStack} in the player's inventory slot.
      * <p>
      * If the stack has not been given a creation time yet, it will be set to the current world time.
@@ -115,9 +128,7 @@ public class FSLogic
      */
     private static void updateRot(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-
-        if (!tag.hasKey(TAG_CREATION_TIME))
+        if (!FSLogic.hasCreationTime(stack))
         {
             setCreationTime(stack, currentWorldTime);
         }
@@ -166,7 +177,7 @@ public class FSLogic
         if (!FSConfig.WARNING_MESSAGE.sendMessages) return false;
 
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        if (!tag.hasKey(TAG_CREATION_TIME)) return false;
+        if (!FSLogic.hasCreationTime(stack)) return false;
 
         long spoilTime = tag.getLong(TAG_CREATION_TIME);
         int daysToRot = getDaysToRot(stack);
