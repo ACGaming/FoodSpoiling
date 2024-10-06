@@ -24,16 +24,14 @@ public class FSClientEvents
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event)
     {
-        if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null || (event.getEntityPlayer().isCreative() && !FSConfig.ROTTING.rotInCreative)) return;
+        if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null) return;
 
         ItemStack stack = event.getItemStack();
         if (!FSLogic.canRot(stack)) return;
 
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        if (!tag.hasKey(FSLogic.TAG_CREATION_TIME)) return;
-
-        long creationTime = tag.getLong(FSLogic.TAG_CREATION_TIME);
         long currentTime = event.getEntityPlayer().world.getTotalWorldTime();
+        long creationTime = tag.hasKey(FSLogic.TAG_CREATION_TIME) ? tag.getLong(FSLogic.TAG_CREATION_TIME) : currentTime;
         int daysToRot = FSLogic.getDaysToRot(stack);
         int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
 
@@ -66,7 +64,7 @@ public class FSClientEvents
                 event.getToolTip().add(tooltip);
             }
         }
-        if (event.getFlags().isAdvanced())
+        if (event.getFlags().isAdvanced() && tag.hasKey(FSLogic.TAG_CREATION_TIME))
         {
             event.getToolTip().add("CreationTime: " + creationTime);
         }

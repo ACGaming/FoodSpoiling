@@ -73,7 +73,10 @@ public class FSConfig
             };
 
         @Config.Name("Rot In Creative Mode")
-        @Config.Comment("Allows items specified in 'Days To Rot' to rot in creative mode")
+        @Config.Comment({
+            "Allows items specified in 'Days To Rot' to rot in creative mode",
+            "Already rotting items will continue to rot nonetheless"
+        })
         public boolean rotInCreative = false;
 
         @Config.RequiresMcRestart
