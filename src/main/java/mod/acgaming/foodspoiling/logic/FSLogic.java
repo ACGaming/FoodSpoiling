@@ -80,6 +80,12 @@ public class FSLogic
         else
         {
             long creationTime = getCreationTime(stack);
+
+            if (creationTime > currentWorldTime)
+            {
+                setCreationTime(stack, currentWorldTime);
+            }
+
             int daysToRot = getDaysToRot(stack);
 
             if (daysToRot > 0)

@@ -47,6 +47,7 @@ public class FSClientEvents
             String tooltip = "";
             int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
             int percentageRemaining = 100 - (int) ((elapsedTime * 100) / maxSpoilTicks);
+            percentageRemaining = Math.max(0, Math.min(100, percentageRemaining));
             if (FSConfig.TOOLTIPS.tooltipFoodDays)
             {
                 tooltip = daysRemaining > 0 ? I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining) : I18n.format("tooltip.foodspoiling.good_for_less_than_day");
