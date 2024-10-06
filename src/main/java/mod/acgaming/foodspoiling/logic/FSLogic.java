@@ -83,7 +83,8 @@ public class FSLogic
     public static void setCreationTime(ItemStack stack, long creationTime)
     {
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        tag.setLong(TAG_CREATION_TIME, creationTime);
+        long roundedCreationTime = ((creationTime + FSConfig.GENERAL.checkIntervalInTicks / 2) / FSConfig.GENERAL.checkIntervalInTicks) * FSConfig.GENERAL.checkIntervalInTicks;
+        tag.setLong(TAG_CREATION_TIME, roundedCreationTime);
     }
 
     /**
