@@ -10,6 +10,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -21,9 +22,12 @@ public class FSMaps
     public static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
     public static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
     public static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
+    public static final Map<String, Double> CONTAINER_CONDITIONS = new Object2DoubleOpenHashMap<>();
 
     public static void initializeFoodMaps()
     {
+        FOOD_CONVERSIONS.clear();
+        FOOD_EXPIRATION_DAYS.clear();
         for (String entry : FSConfig.ROTTING.daysToRot)
         {
             String[] parts = entry.split(",");
@@ -39,6 +43,23 @@ public class FSMaps
                     String itemOutputIdentifier = parts[1].trim();
                     processOutputItem(itemInputIdentifier, itemOutputIdentifier);
                 }
+            }
+        }
+    }
+
+    public static void initializeContainerConditions()
+    {
+        CONTAINER_CONDITIONS.clear();
+        for (String entry : FSConfig.ROTTING.containerConditions)
+        {
+            String[] parts = entry.split(",");
+            if (parts.length >= 2)
+            {
+                String containerClass = parts[0].trim();
+                String lifetimeFactorString = parts[parts.length - 1].trim();
+                double lifetimeFactor = Double.parseDouble(lifetimeFactorString);
+                CONTAINER_CONDITIONS.put(containerClass, lifetimeFactor);
+                FoodSpoiling.LOGGER.debug("Added a lifetime factor of {} for container {}", lifetimeFactor, containerClass);
             }
         }
     }

@@ -1,4 +1,5 @@
 tooltip.foodspoiling.does_not_rot=Does not rot
 tooltip.foodspoiling.good_for_days=Good for %s more days
-tooltip.foodspoiling.good_for_days_percentage=%s%%
 tooltip.foodspoiling.good_for_less_than_day=Good for less than a day
+tooltip.foodspoiling.lifetime_factor=Lifetime factor: %s
+tooltip.foodspoiling.stored_in_container=When stored in this container:

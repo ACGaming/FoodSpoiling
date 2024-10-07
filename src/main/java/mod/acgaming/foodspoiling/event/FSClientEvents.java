@@ -3,10 +3,11 @@ package mod.acgaming.foodspoiling.event;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Container;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -17,6 +18,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import mod.acgaming.foodspoiling.FoodSpoiling;
 import mod.acgaming.foodspoiling.config.FSConfig;
 import mod.acgaming.foodspoiling.logic.FSLogic;
+import mod.acgaming.foodspoiling.logic.FSMaps;
 
 @Mod.EventBusSubscriber(modid = FoodSpoiling.MOD_ID, value = Side.CLIENT)
 public class FSClientEvents
@@ -26,13 +28,14 @@ public class FSClientEvents
     {
         if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null) return;
 
+        Container container = event.getEntityPlayer().openContainer;
+        String containerClass = container.getClass().getName();
         ItemStack stack = event.getItemStack();
+
         if (!FSLogic.canRot(stack)) return;
 
-        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        long currentTime = event.getEntityPlayer().world.getTotalWorldTime();
-        long creationTime = tag.hasKey(FSLogic.TAG_CREATION_TIME) ? tag.getLong(FSLogic.TAG_CREATION_TIME) : currentTime;
-        int daysToRot = FSLogic.getDaysToRot(stack);
+        long creationTime = FSLogic.hasCreationTime(stack) ? FSLogic.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
+        int daysToRot = FSLogic.getDaysToRot(event.getEntityPlayer(), stack);
         int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
 
         if (daysToRot < 0)
@@ -41,29 +44,59 @@ public class FSClientEvents
         }
         else
         {
-            long elapsedTime = currentTime - creationTime;
-            String tooltip = "";
+            long elapsedTime = event.getEntityPlayer().world.getTotalWorldTime() - creationTime;
             int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
-            int percentageRemaining = 100 - (int) ((elapsedTime * 100) / maxSpoilTicks);
-            percentageRemaining = Math.max(0, Math.min(100, percentageRemaining));
+            int percentageRemaining = Math.max(0, Math.min(100, 100 - (int) ((elapsedTime * 100) / maxSpoilTicks)));
+
+            if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
+            {
+                event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
+            }
+
+            StringBuilder tooltipBuilder = new StringBuilder();
+
             if (FSConfig.TOOLTIPS.tooltipFoodDays)
             {
-                tooltip = daysRemaining > 0 ? I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining) : I18n.format("tooltip.foodspoiling.good_for_less_than_day");
+                if (daysRemaining > 0)
+                {
+                    tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining));
+                }
+                else
+                {
+                    tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_less_than_day"));
+                }
 
                 if (FSConfig.TOOLTIPS.tooltipFoodPercent)
                 {
-                    tooltip = tooltip + " (" + I18n.format("tooltip.foodspoiling.good_for_days_percentage", percentageRemaining) + ")";
+                    tooltipBuilder.append(" (").append(percentageRemaining).append("%)");
                 }
             }
             else if (FSConfig.TOOLTIPS.tooltipFoodPercent)
             {
-                tooltip = I18n.format("tooltip.foodspoiling.good_for_days_percentage", percentageRemaining);
+                tooltipBuilder.append(percentageRemaining).append("%");
             }
-            if (!tooltip.isEmpty())
+
+            if (tooltipBuilder.length() > 0)
             {
-                event.getToolTip().add(tooltip);
+                event.getToolTip().add(tooltipBuilder.toString());
+            }
+
+            if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
+            {
+                double lifetimeFactor = FSMaps.CONTAINER_CONDITIONS.get(containerClass);
+                if (lifetimeFactor != 1.0)
+                {
+                    String bonusTooltip = I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor);
+                    if (FSConfig.TOOLTIPS.tooltipFoodPercent)
+                    {
+                        int percentageBonus = (int) ((lifetimeFactor - 1.0) * 100);
+                        bonusTooltip += " (" + (percentageBonus >= 0 ? "+" : "") + percentageBonus + "%)";
+                    }
+                    event.getToolTip().add(bonusTooltip);
+                }
             }
         }
+
         if (event.getFlags().isAdvanced() && FSLogic.hasCreationTime(stack))
         {
             event.getToolTip().add("CreationTime: " + creationTime);
@@ -78,14 +111,15 @@ public class FSClientEvents
         ItemColors itemColors = event.getItemColors();
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
-            if (!FSLogic.canRot(stack) || !FSLogic.hasCreationTime(stack))
+            EntityPlayer player = Minecraft.getMinecraft().player;
+            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || !FSLogic.canRot(stack) || !FSLogic.hasCreationTime(stack))
             {
                 return 0xFFFFFF;
             }
 
             long spoilTime = FSLogic.getCreationTime(stack);
             long currentTime = Minecraft.getMinecraft().world.getTotalWorldTime();
-            int daysToRot = FSLogic.getDaysToRot(stack);
+            int daysToRot = FSLogic.getDaysToRot(player, stack);
             int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
 
             long elapsedTime = currentTime - spoilTime;

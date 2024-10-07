@@ -3,10 +3,14 @@ package mod.acgaming.foodspoiling.logic;
 import java.util.Random;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
@@ -20,7 +24,7 @@ public class FSLogic
      * Returns true if the given ItemStack is a food item that can rot, false otherwise.
      *
      * @param stack the stack to check
-     * @return true if the stack can rot, false otherwise
+     * @return true if the stack has a registered expiration time, false otherwise
      */
     public static boolean canRot(ItemStack stack)
     {
@@ -51,22 +55,32 @@ public class FSLogic
             {
                 sendWarningMessage(player);
             }
+
+            System.out.println("Container Name: " + getContainerDisplayName(player.openContainer));
         }
     }
 
     /**
-     * Get the number of days to rot for the given {@link ItemStack}.
+     * Gets the number of days a food item has before it's considered rotten.
+     * If the item is in a container with a custom lifetime factor, that multiplier is applied.
+     * If the item is not applicable, this method returns -1.
      *
-     * @param stack The item stack to check.
-     * @return The number of days to rot, or -1 if no expiration days are set for the item.
+     * @param player the player whose container is being checked for a custom lifetime factor
+     * @param stack  the stack to get the number of days for
+     * @return the number of days the stack has before it rots, or -1 if it's not applicable
      */
-    public static int getDaysToRot(ItemStack stack)
+    public static int getDaysToRot(EntityPlayer player, ItemStack stack)
     {
         if (stack != null)
         {
             Item item = stack.getItem();
             if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
+                if (FSLogic.hasCustomContainerConditions(player, stack))
+                {
+                    String containerClass = player.openContainer.getClass().getName();
+                    return (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSMaps.CONTAINER_CONDITIONS.get(containerClass));
+                }
                 return FSMaps.FOOD_EXPIRATION_DAYS.get(item);
             }
         }
@@ -113,6 +127,42 @@ public class FSLogic
     }
 
     /**
+     * Returns true if the player has a custom container condition defined for the given {@link ItemStack}'s container,
+     * and the stack is not contained in the player's inventory, false otherwise.
+     *
+     * @param player the player to check for custom container conditions
+     * @param stack  the stack to check
+     * @return true if the player has a custom container condition defined for the stack, and the stack is not
+     * contained in the player's inventory, false otherwise
+     */
+    public static boolean hasCustomContainerConditions(EntityPlayer player, ItemStack stack)
+    {
+        String containerClass = player.openContainer.getClass().getName();
+        return FSMaps.CONTAINER_CONDITIONS.containsKey(containerClass) && !player.inventoryContainer.getInventory().contains(stack);
+    }
+
+    public static String getContainerDisplayName(Container container)
+    {
+        if (container instanceof IInventory)
+        {
+            IInventory inventory = (IInventory) container;
+            return inventory.getDisplayName().getUnformattedText();
+        }
+
+        if (!container.inventorySlots.isEmpty())
+        {
+            TileEntity tileEntity = container.inventorySlots.get(0).inventory instanceof TileEntity ? (TileEntity) container.inventorySlots.get(0).inventory : null;
+            if (tileEntity != null)
+            {
+                ITextComponent displayName = tileEntity.getDisplayName();
+                return displayName != null ? displayName.getUnformattedText() : "Unknown Container";
+            }
+        }
+
+        return "Unknown Container";
+    }
+
+    /**
      * Updates the rot time of the given {@link ItemStack} in the player's inventory slot.
      * <p>
      * If the stack has not been given a creation time yet, it will be set to the current world time.
@@ -141,7 +191,7 @@ public class FSLogic
                 setCreationTime(stack, currentWorldTime);
             }
 
-            int daysToRot = getDaysToRot(stack);
+            int daysToRot = getDaysToRot(player, stack);
 
             if (daysToRot > 0)
             {
@@ -180,7 +230,7 @@ public class FSLogic
         if (!FSLogic.hasCreationTime(stack)) return false;
 
         long spoilTime = tag.getLong(TAG_CREATION_TIME);
-        int daysToRot = getDaysToRot(stack);
+        int daysToRot = getDaysToRot(player, stack);
         int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
 
         if (daysToRot < 0) return false;

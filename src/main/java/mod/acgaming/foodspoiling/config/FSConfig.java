@@ -37,6 +37,10 @@ public class FSConfig
         @Config.Name("Day Length")
         @Config.Comment("Length of each day in ticks")
         public int dayLengthInTicks = 24000;
+
+        @Config.Name("Debug Container Class Printing")
+        @Config.Comment("Prints the class name of any container upon opening")
+        public boolean debugContainerClass = false;
     }
 
     public static class Rotting
@@ -46,11 +50,23 @@ public class FSConfig
         @Config.Comment("Allows merging the same rotting items with different rot times (uses worse food rot time)")
         public boolean allowFoodMerge = true;
 
+        @Config.Name("Container Conditions")
+        @Config.Comment
+            ({
+                "Special conditions for containers to rot food in",
+                "Format: 'container_class,lifetime_factor'",
+                "The higher the lifetime factor, the slower the food will rot",
+            })
+        public String[] containerConditions =
+            {
+                "net.minecraft.inventory.ContainerChest,1.2",
+            };
+
         @Config.Name("Days To Rot")
         @Config.Comment
             ({
                 "Food items do not decay by default, and must be added below",
-                "Format: 'modid:fooditem,modid:rottenitem,days' |OR| 'modid:fooditem,-1' for explicit tooltip to state \"Does not rot\"",
+                "Format: 'modid:food_item,modid:rotten_item,days' |OR| 'modid:food_item,-1' for explicit tooltip to state \"Does not rot\"",
                 "Instead of 'modid', 'ore' can be used as a namespace for ore dictionary names",
                 "Any item added here will be given a tooltip that says \"Good for % days\" when unspoiled"
             })
@@ -72,37 +88,30 @@ public class FSConfig
                 "minecraft:golden_apple,-1"
             };
 
-        @Config.Name("Rot In Creative Mode")
-        @Config.Comment({
-            "Allows items specified in 'Days To Rot' to rot in creative mode",
-            "Already rotting items will continue to rot nonetheless"
-        })
-        public boolean rotInCreative = false;
-
         @Config.RequiresMcRestart
         @Config.Name("Render Rotten State")
         @Config.Comment("Applies an increasing green tint on food items as they rot")
         public boolean renderRottenState = true;
+
+        @Config.Name("Rot In Creative Mode")
+        @Config.Comment
+            ({
+                "Allows items specified in 'Days To Rot' to rot in creative mode",
+                "Already rotting items will continue to rot nonetheless"
+            })
+        public boolean rotInCreative = false;
     }
 
     public static class WarningMessage
     {
-        @Config.Name("Send Warning Messages")
-        @Config.Comment("Sends warning messages to players when one or more food items spoilage is above 'Message Percentage'")
-        public boolean sendMessages = true;
-
-        @Config.Name("Send As Action Bar Messages")
-        @Config.Comment("If false, sends as a chat message instead of the action bar")
-        public boolean sendMessagesActionBar = true;
+        @Config.Name("Message Cooldown")
+        @Config.Comment("The cooldown for sending a warning message in minutes")
+        public int messageCooldownMinutes = 1;
 
         @Config.Name("Message Percentage")
         @Config.Comment("The remaining food percentage for warning messages to send")
         @Config.RangeInt(min = 1, max = 100)
         public int messagePercentage = 10;
-
-        @Config.Name("Message Cooldown")
-        @Config.Comment("The cooldown for sending a warning message in minutes")
-        public int messageCooldownMinutes = 1;
 
         @Config.Name("Random Warning Messages")
         @Config.Comment("Randomly chosen warning messages")
@@ -112,6 +121,14 @@ public class FSConfig
                 "My food is about to go bad!",
                 "My food is about to rot..."
             };
+
+        @Config.Name("Send As Action Bar Messages")
+        @Config.Comment("If false, sends as a chat message instead of the action bar")
+        public boolean sendMessagesActionBar = true;
+
+        @Config.Name("Send Warning Messages")
+        @Config.Comment("Sends warning messages to players when one or more food items spoilage is above 'Message Percentage'")
+        public boolean sendMessages = true;
     }
 
     public static class Tooltips
@@ -139,6 +156,7 @@ public class FSConfig
             {
                 ConfigManager.sync(FoodSpoiling.MOD_ID, Config.Type.INSTANCE);
                 FSMaps.initializeFoodMaps();
+                FSMaps.initializeContainerConditions();
             }
         }
     }

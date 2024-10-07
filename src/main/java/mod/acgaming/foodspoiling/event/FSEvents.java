@@ -26,6 +26,10 @@ public class FSEvents
     @SubscribeEvent
     public static void onContainerOpen(PlayerContainerEvent.Open event)
     {
+        if (FSConfig.GENERAL.debugContainerClass)
+        {
+            FoodSpoiling.LOGGER.info("Inventory class name: {}", event.getContainer().getClass().getName());
+        }
         FSLogic.updateInventory(event.getEntityPlayer());
     }
 

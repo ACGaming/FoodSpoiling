@@ -20,5 +20,6 @@ public class FoodSpoiling
     public void postInit(FMLPostInitializationEvent event)
     {
         FSMaps.initializeFoodMaps();
+        FSMaps.initializeContainerConditions();
     }
 }
