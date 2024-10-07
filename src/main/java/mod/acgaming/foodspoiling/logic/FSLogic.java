@@ -3,14 +3,10 @@ package mod.acgaming.foodspoiling.logic;
 import java.util.Random;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
@@ -55,8 +51,6 @@ public class FSLogic
             {
                 sendWarningMessage(player);
             }
-
-            System.out.println("Container Name: " + getContainerDisplayName(player.openContainer));
         }
     }
 
@@ -139,27 +133,6 @@ public class FSLogic
     {
         String containerClass = player.openContainer.getClass().getName();
         return FSMaps.CONTAINER_CONDITIONS.containsKey(containerClass) && !player.inventoryContainer.getInventory().contains(stack);
-    }
-
-    public static String getContainerDisplayName(Container container)
-    {
-        if (container instanceof IInventory)
-        {
-            IInventory inventory = (IInventory) container;
-            return inventory.getDisplayName().getUnformattedText();
-        }
-
-        if (!container.inventorySlots.isEmpty())
-        {
-            TileEntity tileEntity = container.inventorySlots.get(0).inventory instanceof TileEntity ? (TileEntity) container.inventorySlots.get(0).inventory : null;
-            if (tileEntity != null)
-            {
-                ITextComponent displayName = tileEntity.getDisplayName();
-                return displayName != null ? displayName.getUnformattedText() : "Unknown Container";
-            }
-        }
-
-        return "Unknown Container";
     }
 
     /**
