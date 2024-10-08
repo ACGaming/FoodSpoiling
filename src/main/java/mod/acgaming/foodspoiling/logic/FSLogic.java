@@ -52,6 +52,31 @@ public class FSLogic
         }
     }
 
+    public static void saveInventory(EntityPlayer player)
+    {
+        if (player.world.isRemote || (player.isCreative() && !FSConfig.ROTTING.rotInCreative)) return;
+
+        long currentWorldTime = player.world.getTotalWorldTime();
+
+        for (int i = 0; i < player.inventoryContainer.inventorySlots.size(); i++)
+        {
+            Slot slot = player.inventoryContainer.inventorySlots.get(i);
+            ItemStack stack = slot.getStack();
+            if (canRot(stack))
+            {
+                saveStack(stack, currentWorldTime);
+            }
+        }
+    }
+
+    public static void saveStack(ItemStack stack, long currentWorldTime)
+    {
+        long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
+        int totalSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
+        int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
+        FSData.setRemainingLifetime(stack, remainingLifetime);
+    }
+
     /**
      * Gets the number of ticks a food item has before it's considered rotten.
      * If the item is in a container with a custom lifetime factor, that multiplier is applied.
@@ -139,10 +164,7 @@ public class FSLogic
             // Pausing spoilage: Save remaining lifetime
             if (FSData.hasCreationTime(stack))
             {
-                long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
-                int totalSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
-                int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
-                FSData.setRemainingLifetime(stack, remainingLifetime);  // Save remaining lifetime
+                FSLogic.saveStack(stack, currentWorldTime);
             }
             // Skip further spoilage logic since spoilage is paused
             return;
