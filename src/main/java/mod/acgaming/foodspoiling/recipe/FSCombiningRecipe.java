@@ -10,6 +10,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
+import mod.acgaming.foodspoiling.logic.FSData;
 import mod.acgaming.foodspoiling.logic.FSLogic;
 
 // Courtesy of BordListian
@@ -55,7 +56,7 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
                     }
                 }
 
-                long creationTime = FSLogic.getCreationTime(stack);
+                long creationTime = FSData.getCreationTime(stack);
                 oldestDate = Math.min(oldestDate, creationTime);
                 matches++;
             }
@@ -64,7 +65,7 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
         if (matches < 2 || matches > combinedStack.getMaxStackSize()) return ItemStack.EMPTY;
 
         combinedStack.setCount(matches);
-        FSLogic.setCreationTime(combinedStack, oldestDate);
+        FSData.setCreationTime(combinedStack, oldestDate);
         return combinedStack;
     }
 
@@ -78,7 +79,7 @@ public class FSCombiningRecipe extends ShapelessOreRecipe
         {
             ItemStack stack = inv.getStackInSlot(slot);
 
-            if (stack.isEmpty() || !FSLogic.hasCreationTime(stack)) continue;
+            if (stack.isEmpty() || !FSData.hasCreationTime(stack)) continue;
 
             if (FSLogic.canRot(stack))
             {

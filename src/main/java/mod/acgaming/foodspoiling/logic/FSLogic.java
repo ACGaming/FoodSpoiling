@@ -14,8 +14,6 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 
 public class FSLogic
 {
-    public static final String TAG_CREATION_TIME = "CreationTime";
-
     /**
      * Returns true if the given ItemStack is a food item that can rot, false otherwise.
      *
@@ -55,69 +53,32 @@ public class FSLogic
     }
 
     /**
-     * Gets the number of days a food item has before it's considered rotten.
+     * Gets the number of ticks a food item has before it's considered rotten.
      * If the item is in a container with a custom lifetime factor, that multiplier is applied.
      * If the item is not applicable, this method returns -1.
      *
      * @param player the player whose container is being checked for a custom lifetime factor
-     * @param stack  the stack to get the number of days for
-     * @return the number of days the stack has before it rots, or -1 if it's not applicable
+     * @param stack  the stack to get the number of ticks for
+     * @return the number of ticks the stack has before it rots, or -1 if it's not applicable
      */
-    public static int getDaysToRot(EntityPlayer player, ItemStack stack)
+    public static int getTicksToRot(EntityPlayer player, ItemStack stack)
     {
+        int ticksToRot = -1;
         if (stack != null)
         {
             Item item = stack.getItem();
             if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
+                ticksToRot = FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks;
                 if (FSLogic.hasCustomContainerConditions(player, stack))
                 {
                     String containerClass = player.openContainer.getClass().getName();
-                    return (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSMaps.CONTAINER_CONDITIONS.get(containerClass));
+                    double lifetimeFactor = FSMaps.CONTAINER_CONDITIONS.get(containerClass);
+                    ticksToRot = lifetimeFactor > 0 ? (int) (ticksToRot * lifetimeFactor) : -1;
                 }
-                return FSMaps.FOOD_EXPIRATION_DAYS.get(item);
             }
         }
-        return -1;
-    }
-
-    /**
-     * Sets the creation time for the given {@link ItemStack}. This method will create a new NBTTagCompound
-     * in the stack's tag compound with the given value if one does not already exist.
-     *
-     * @param stack        the stack to set the creation time for
-     * @param creationTime the creation time to set
-     */
-    public static void setCreationTime(ItemStack stack, long creationTime)
-    {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        long roundedCreationTime = ((creationTime + FSConfig.GENERAL.checkIntervalInTicks / 2) / FSConfig.GENERAL.checkIntervalInTicks) * FSConfig.GENERAL.checkIntervalInTicks;
-        tag.setLong(TAG_CREATION_TIME, roundedCreationTime);
-    }
-
-    /**
-     * Returns the creation time for the given {@link ItemStack}, or 0 if no creation time has been set.
-     *
-     * @param stack the stack to retrieve the creation time from
-     * @return the creation time for the given stack
-     */
-    public static long getCreationTime(ItemStack stack)
-    {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        return tag.getLong(TAG_CREATION_TIME);
-    }
-
-    /**
-     * Checks if the given ItemStack has a creation time set. If it does not, the given stack cannot be checked for
-     * rotting.
-     *
-     * @param stack the stack to check
-     * @return true if the stack has a creation time, false otherwise
-     */
-    public static boolean hasCreationTime(ItemStack stack)
-    {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        return tag.hasKey(TAG_CREATION_TIME);
+        return ticksToRot;
     }
 
     /**
@@ -136,13 +97,11 @@ public class FSLogic
     }
 
     /**
-     * Updates the rot time of the given {@link ItemStack} in the player's inventory slot.
-     * <p>
-     * If the stack has not been given a creation time yet, it will be set to the current world time.
-     * If the stack has a creation time, it will be checked against the current world time. If the stack's creation time
-     * is in the future, it will be set to the current world time. If the stack has been in the inventory long enough to
-     * rot, it will be replaced with a rotten equivalent if one exists.
-     * </p>
+     * Updates the rot time of the given {@link ItemStack} in the given {@link EntityPlayer}'s inventory at the given
+     * slot. If the stack is in a container that pauses spoilage, the remaining lifetime is saved. If the stack has a
+     * remaining lifetime, the creation time is updated to the current world time minus the remaining lifetime.
+     * If the item is fresh or has an invalid time, the creation time is set to the current world time.
+     * Finally, the method checks if the item has fully rotted and, if so, replaces it with the rotten equivalent.
      *
      * @param player           the player whose inventory is being updated
      * @param stack            the stack to update
@@ -151,37 +110,67 @@ public class FSLogic
      */
     private static void updateRot(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
-        if (!FSLogic.hasCreationTime(stack))
+        // If no ID exists, set it now
+        if (!FSData.hasID(stack))
         {
-            setCreationTime(stack, currentWorldTime);
+            FSData.setID(stack, stack.hashCode());
+        }
+
+        String containerClass = player.openContainer.getClass().getName();
+
+        // Check if the container pauses spoilage (negative value in CONTAINER_CONDITIONS)
+        if (FSLogic.hasCustomContainerConditions(player, stack) && FSMaps.CONTAINER_CONDITIONS.get(containerClass) < 0)
+        {
+            // Pausing spoilage: Save remaining lifetime
+            if (FSData.hasCreationTime(stack))
+            {
+                long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
+                int totalSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
+                int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
+                FSData.setRemainingLifetime(stack, remainingLifetime);  // Save remaining lifetime
+            }
+            // Skip further spoilage logic since spoilage is paused
+            return;
+        }
+
+        // Resuming spoilage: If item has paused spoilage (remaining lifetime), set new creation time
+        if (FSData.hasRemainingLifetime(stack))
+        {
+            int remainingLifetime = FSData.getRemainingLifetime(stack);
+            int totalSpoilTicks = FSLogic.getTicksToRot(player, stack);
+
+            // Calculate the new creation time by subtracting remaining lifetime from the total spoil ticks
+            long newCreationTime = currentWorldTime - (totalSpoilTicks - remainingLifetime);
+            FSData.setCreationTime(stack, newCreationTime);  // Correct the creation time
+        }
+
+        // If no creation time exists, set it now
+        if (!FSData.hasCreationTime(stack))
+        {
+            FSData.setCreationTime(stack, currentWorldTime);
         }
         else
         {
-            long creationTime = getCreationTime(stack);
+            long creationTime = FSData.getCreationTime(stack);
 
+            // If creation time is in the future (due to time sync issues), reset it
             if (creationTime > currentWorldTime)
             {
-                setCreationTime(stack, currentWorldTime);
+                FSData.setCreationTime(stack, currentWorldTime);
             }
 
-            int daysToRot = getDaysToRot(player, stack);
+            // Calculate spoilage and check if the item has fully rotted
+            int totalSpoilTicks = FSLogic.getTicksToRot(player, stack);
+            long elapsedTime = currentWorldTime - creationTime;
 
-            if (daysToRot > 0)
+            if (elapsedTime >= totalSpoilTicks && FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
             {
-                int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
-
-                long elapsedTime = currentWorldTime - creationTime;
-
-                if (elapsedTime >= maxSpoilTicks && FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
+                Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
+                if (itemReplacement != null)
                 {
-                    Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
-
-                    if (itemReplacement != null)
-                    {
-                        ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
-                        player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
-                        player.openContainer.detectAndSendChanges();
-                    }
+                    ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
+                    player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
+                    player.openContainer.detectAndSendChanges();
                 }
             }
         }
@@ -200,13 +189,12 @@ public class FSLogic
         if (!FSConfig.WARNING_MESSAGE.sendMessages) return false;
 
         NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
-        if (!FSLogic.hasCreationTime(stack)) return false;
+        if (!FSData.hasCreationTime(stack)) return false;
 
-        long spoilTime = tag.getLong(TAG_CREATION_TIME);
-        int daysToRot = getDaysToRot(player, stack);
-        int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
+        long spoilTime = tag.getLong(FSData.TAG_CREATION_TIME);
+        int maxSpoilTicks = getTicksToRot(player, stack);
 
-        if (daysToRot < 0) return false;
+        if (maxSpoilTicks < 0) return false;
 
         long elapsedTime = currentWorldTime - spoilTime;
         int spoilPercentage = 100 - (int) ((elapsedTime * 100) / maxSpoilTicks);

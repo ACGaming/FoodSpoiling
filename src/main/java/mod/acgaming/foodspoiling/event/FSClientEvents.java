@@ -17,6 +17,7 @@ import net.minecraftforge.fml.relauncher.Side;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
 import mod.acgaming.foodspoiling.config.FSConfig;
+import mod.acgaming.foodspoiling.logic.FSData;
 import mod.acgaming.foodspoiling.logic.FSLogic;
 import mod.acgaming.foodspoiling.logic.FSMaps;
 
@@ -34,24 +35,23 @@ public class FSClientEvents
 
         if (!FSLogic.canRot(stack)) return;
 
-        long creationTime = FSLogic.hasCreationTime(stack) ? FSLogic.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
-        int daysToRot = FSLogic.getDaysToRot(event.getEntityPlayer(), stack);
-        int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
+        long creationTime = FSData.hasCreationTime(stack) ? FSData.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
+        int maxSpoilTicks = FSLogic.getTicksToRot(event.getEntityPlayer(), stack);
 
-        if (daysToRot < 0)
+        if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
+        {
+            event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
+        }
+
+        if (maxSpoilTicks < 0)
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
         }
-        else
+        else if (!FSData.hasRemainingLifetime(stack))
         {
             long elapsedTime = event.getEntityPlayer().world.getTotalWorldTime() - creationTime;
             int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
             int percentageRemaining = Math.max(0, Math.min(100, 100 - (int) ((elapsedTime * 100) / maxSpoilTicks)));
-
-            if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
-            {
-                event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
-            }
 
             StringBuilder tooltipBuilder = new StringBuilder();
 
@@ -84,7 +84,7 @@ public class FSClientEvents
             if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
             {
                 double lifetimeFactor = FSMaps.CONTAINER_CONDITIONS.get(containerClass);
-                if (lifetimeFactor != 1.0)
+                if (lifetimeFactor > 0 && lifetimeFactor != 1)
                 {
                     String bonusTooltip = I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor);
                     if (FSConfig.TOOLTIPS.tooltipFoodPercent)
@@ -97,9 +97,20 @@ public class FSClientEvents
             }
         }
 
-        if (event.getFlags().isAdvanced() && FSLogic.hasCreationTime(stack))
+        if (event.getFlags().isAdvanced())
         {
-            event.getToolTip().add("CreationTime: " + creationTime);
+            if (FSData.hasID(stack))
+            {
+                event.getToolTip().add("§8" + "ID: " + FSData.getID(stack));
+            }
+            if (FSData.hasCreationTime(stack))
+            {
+                event.getToolTip().add("§8" + "CreationTime: " + creationTime);
+            }
+            if (FSData.hasRemainingLifetime(stack))
+            {
+                event.getToolTip().add("§8" + "RemainingLifetime: " + FSData.getRemainingLifetime(stack));
+            }
         }
     }
 
@@ -112,33 +123,58 @@ public class FSClientEvents
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
             EntityPlayer player = Minecraft.getMinecraft().player;
-            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || !FSLogic.canRot(stack) || !FSLogic.hasCreationTime(stack))
+            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || !FSLogic.canRot(stack))
             {
                 return 0xFFFFFF;
             }
 
-            long spoilTime = FSLogic.getCreationTime(stack);
             long currentTime = Minecraft.getMinecraft().world.getTotalWorldTime();
-            int daysToRot = FSLogic.getDaysToRot(player, stack);
-            int maxSpoilTicks = daysToRot * FSConfig.GENERAL.dayLengthInTicks;
+            int maxSpoilTicks = FSLogic.getTicksToRot(player, stack);
 
-            long elapsedTime = currentTime - spoilTime;
-            float spoilPercentage = Math.min(1.0F, (float) elapsedTime / maxSpoilTicks);
+            if (maxSpoilTicks < 0)
+            {
+                return FSMaps.FOOD_TINTS.getOrDefault(FSData.getID(stack), 0xFFFFFF);
+            }
 
-            int startRed = 255;
-            int startGreen = 255;
-            int startBlue = 255;
+            float spoilPercentage;
+            if (FSData.hasRemainingLifetime(stack))
+            {
+                int remainingLifetime = FSData.getRemainingLifetime(stack);
+                spoilPercentage = 1.0F - (float) remainingLifetime / maxSpoilTicks;
+            }
+            else if (FSData.hasCreationTime(stack))
+            {
+                long creationTime = FSData.getCreationTime(stack);
+                long elapsedTime = currentTime - creationTime;
+                spoilPercentage = Math.min(1.0F, (float) elapsedTime / maxSpoilTicks);
+            }
+            else
+            {
+                return 0xFFFFFF;
+            }
 
-            int targetRed = 136;
-            int targetGreen = 204;
-            int targetBlue = 51;
+            int color = getColor(spoilPercentage);
 
-            int red = (int) (startRed + spoilPercentage * (targetRed - startRed));
-            int green = (int) (startGreen + spoilPercentage * (targetGreen - startGreen));
-            int blue = (int) (startBlue + spoilPercentage * (targetBlue - startBlue));
+            FSMaps.FOOD_TINTS.put(FSData.getID(stack), color);
 
-            return (red << 16) | (green << 8) | blue;
-
+            return color;
         }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(ItemFood.class::isInstance).toArray(Item[]::new));
+    }
+
+    private static int getColor(float spoilPercentage)
+    {
+        int startRed = 255;
+        int startGreen = 255;
+        int startBlue = 255;
+
+        int targetRed = 136;
+        int targetGreen = 204;
+        int targetBlue = 51;
+
+        int red = (int) (startRed + spoilPercentage * (targetRed - startRed));
+        int green = (int) (startGreen + spoilPercentage * (targetGreen - startGreen));
+        int blue = (int) (startBlue + spoilPercentage * (targetBlue - startBlue));
+
+        return (red << 16) | (green << 8) | blue;
     }
 }

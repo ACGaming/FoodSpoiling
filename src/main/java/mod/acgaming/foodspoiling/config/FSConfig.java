@@ -56,6 +56,7 @@ public class FSConfig
                 "Special conditions for containers to rot food in",
                 "Format: 'container_class,lifetime_factor'",
                 "The higher the lifetime factor, the slower the food will rot",
+                "Use a negative lifetime factor to prevent food from rotting"
             })
         public String[] containerConditions =
             {
