@@ -72,8 +72,7 @@ public class FSLogic
                 ticksToRot = FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks;
                 if (FSLogic.hasCustomContainerConditions(player, stack))
                 {
-                    String containerClass = player.openContainer.getClass().getName();
-                    double lifetimeFactor = FSMaps.CONTAINER_CONDITIONS.get(containerClass);
+                    double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
                     ticksToRot = lifetimeFactor > 0 ? (int) (ticksToRot * lifetimeFactor) : -1;
                 }
             }
@@ -92,8 +91,26 @@ public class FSLogic
      */
     public static boolean hasCustomContainerConditions(EntityPlayer player, ItemStack stack)
     {
+        if (FSConfig.ROTTING.rotInPlayerInvOnly) return true;
         String containerClass = player.openContainer.getClass().getName();
         return FSMaps.CONTAINER_CONDITIONS.containsKey(containerClass) && !player.inventoryContainer.getInventory().contains(stack);
+    }
+
+    /**
+     * Gets the custom container lifetime factor for the given {@link EntityPlayer}'s open container.
+     *
+     * @param player the player whose open container is being checked for a custom lifetime factor
+     * @return the custom lifetime factor associated with the player's open container's class name
+     */
+    public static double getCustomContainerConditions(EntityPlayer player, ItemStack stack)
+    {
+        if (FSConfig.ROTTING.rotInPlayerInvOnly)
+        {
+            if (!player.inventoryContainer.getInventory().contains(stack)) return -1;
+            return 1;
+        }
+        String containerClass = player.openContainer.getClass().getName();
+        return FSMaps.CONTAINER_CONDITIONS.get(containerClass);
     }
 
     /**
@@ -116,10 +133,8 @@ public class FSLogic
             FSData.setID(stack, stack.hashCode());
         }
 
-        String containerClass = player.openContainer.getClass().getName();
-
         // Check if the container pauses spoilage (negative value in CONTAINER_CONDITIONS)
-        if (FSLogic.hasCustomContainerConditions(player, stack) && FSMaps.CONTAINER_CONDITIONS.get(containerClass) < 0)
+        if (FSLogic.hasCustomContainerConditions(player, stack) && FSLogic.getCustomContainerConditions(player, stack) < 0)
         {
             // Pausing spoilage: Save remaining lifetime
             if (FSData.hasCreationTime(stack))

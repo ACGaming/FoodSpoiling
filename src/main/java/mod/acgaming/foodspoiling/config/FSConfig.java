@@ -101,6 +101,10 @@ public class FSConfig
                 "Already rotting items will continue to rot nonetheless"
             })
         public boolean rotInCreative = false;
+
+        @Config.Name("Rot In Player Inventory Only")
+        @Config.Comment("Allows items to rot in the player's inventory only")
+        public boolean rotInPlayerInvOnly = false;
     }
 
     public static class WarningMessage

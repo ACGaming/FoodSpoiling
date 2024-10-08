@@ -38,7 +38,7 @@ public class FSClientEvents
         long creationTime = FSData.hasCreationTime(stack) ? FSData.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
         int maxSpoilTicks = FSLogic.getTicksToRot(event.getEntityPlayer(), stack);
 
-        if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
+        if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack) && !FSConfig.ROTTING.rotInPlayerInvOnly)
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
         }
@@ -83,7 +83,7 @@ public class FSClientEvents
 
             if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
             {
-                double lifetimeFactor = FSMaps.CONTAINER_CONDITIONS.get(containerClass);
+                double lifetimeFactor = FSLogic.getCustomContainerConditions(event.getEntityPlayer(), stack);
                 if (lifetimeFactor > 0 && lifetimeFactor != 1)
                 {
                     String bonusTooltip = I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor);
