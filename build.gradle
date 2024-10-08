@@ -106,13 +106,6 @@ dependencies {
         implementation 'zone.rong:mixinbooter:9.1'
     }
 
-    // AutoRegLib
-    implementation rfg.deobf('curse.maven:autoreglib-250363:2746011')
-
-    // Quark
-    implementation rfg.deobf('curse.maven:quark-243121:2924091')
-    implementation rfg.deobf('curse.maven:quark-oddities-301051:2604798')
-
     if (project.use_mixins.toBoolean()) {
         // Change your mixin refmap name here:
         String mixin = modUtils.enableMixins('zone.rong:mixinbooter:9.1', "mixins.${project.mod_id}.refmap.json")
