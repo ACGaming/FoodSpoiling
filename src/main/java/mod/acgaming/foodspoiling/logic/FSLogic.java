@@ -1,7 +1,10 @@
 package mod.acgaming.foodspoiling.logic;
 
 import java.util.Random;
+import javax.annotation.Nullable;
 
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
@@ -86,7 +89,7 @@ public class FSLogic
      * @param stack  the stack to get the number of ticks for
      * @return the number of ticks the stack has before it rots, or -1 if it's not applicable
      */
-    public static int getTicksToRot(EntityPlayer player, ItemStack stack)
+    public static int getTicksToRot(@Nullable EntityPlayer player, ItemStack stack)
     {
         int ticksToRot = -1;
         if (stack != null)
@@ -95,7 +98,7 @@ public class FSLogic
             if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
                 ticksToRot = FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks;
-                if (FSLogic.hasCustomContainerConditions(player, stack))
+                if (player != null && FSLogic.hasCustomContainerConditions(player, stack))
                 {
                     double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
                     ticksToRot = lifetimeFactor > 0 ? (int) (ticksToRot * lifetimeFactor) : -1;
@@ -139,6 +142,24 @@ public class FSLogic
     }
 
     /**
+     * Updates the given {@link EntityItem} if its contained stack has fully rotted. If the stack has rotted,
+     * it is replaced with a rotten equivalent.
+     *
+     * @param itemEntity the entity containing the stack to update
+     * @param stack      the stack to update
+     */
+    public static void updateItemEntity(EntityItem itemEntity, ItemStack stack)
+    {
+        long elapsedTime = itemEntity.world.getTotalWorldTime() - FSData.getCreationTime(stack);
+        int totalSpoilTicks = FSLogic.getTicksToRot(null, stack);
+
+        if (elapsedTime >= totalSpoilTicks)
+        {
+            FSLogic.replaceStack(itemEntity, stack, -1);
+        }
+    }
+
+    /**
      * Updates the rot time of the given {@link ItemStack} in the given {@link EntityPlayer}'s inventory at the given
      * slot. If the stack is in a container that pauses spoilage, the remaining lifetime is saved. If the stack has a
      * remaining lifetime, the creation time is updated to the current world time minus the remaining lifetime.
@@ -150,7 +171,7 @@ public class FSLogic
      * @param inventorySlot    the slot in the player's inventory containing the stack
      * @param currentWorldTime the current world time
      */
-    private static void updateRot(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
+    private static void updateRot(@Nullable EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         // If no ID exists, set it now
         if (!FSData.hasID(stack))
@@ -159,7 +180,7 @@ public class FSLogic
         }
 
         // Check if the container pauses spoilage (negative value in CONTAINER_CONDITIONS)
-        if (FSLogic.hasCustomContainerConditions(player, stack) && FSLogic.getCustomContainerConditions(player, stack) < 0)
+        if (player != null && FSLogic.hasCustomContainerConditions(player, stack) && FSLogic.getCustomContainerConditions(player, stack) < 0)
         {
             // Pausing spoilage: Save remaining lifetime
             if (FSData.hasCreationTime(stack))
@@ -197,18 +218,51 @@ public class FSLogic
             }
 
             // Calculate spoilage and check if the item has fully rotted
-            int totalSpoilTicks = FSLogic.getTicksToRot(player, stack);
             long elapsedTime = currentWorldTime - creationTime;
+            int totalSpoilTicks = FSLogic.getTicksToRot(player, stack);
 
-            if (elapsedTime >= totalSpoilTicks && FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
+            if (elapsedTime >= totalSpoilTicks)
             {
-                Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
-                if (itemReplacement != null)
+                replaceStack(player, stack, inventorySlot);
+            }
+        }
+    }
+
+    /**
+     * Replaces the given item stack with its rotten equivalent if it has fully spoiled.
+     *
+     * @param entity        the entity containing the stack to replace
+     * @param stack         the stack to replace
+     * @param inventorySlot the inventory slot of the stack to replace
+     */
+    private static void replaceStack(Entity entity, ItemStack stack, int inventorySlot)
+    {
+        if (FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
+        {
+            Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
+            if (itemReplacement != null)
+            {
+                ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
+
+                if (entity instanceof EntityPlayer)
                 {
-                    ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
+                    EntityPlayer player = (EntityPlayer) entity;
                     player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
                     player.openContainer.detectAndSendChanges();
                 }
+                else if (entity instanceof EntityItem)
+                {
+                    EntityItem itemEntity = (EntityItem) entity;
+                    itemEntity.setItem(rottenStack);
+                }
+                else
+                {
+                    FoodSpoiling.LOGGER.error("Invalid entity type for replacing item stack: {}", entity.getClass().getName());
+                }
+            }
+            else
+            {
+                stack.setCount(0);
             }
         }
     }

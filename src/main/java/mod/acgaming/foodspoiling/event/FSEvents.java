@@ -1,6 +1,9 @@
 package mod.acgaming.foodspoiling.event;
 
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
@@ -46,6 +49,21 @@ public class FSEvents
             FoodSpoiling.LOGGER.info("Inventory class name: {}", event.getContainer().getClass().getName());
         }
         FSLogic.updateInventory(event.getEntityPlayer());
+    }
+
+    @SubscribeEvent
+    public static void onWorldTick(TickEvent.WorldTickEvent event)
+    {
+        if (FSConfig.ROTTING.rotInPlayerInvOnly || event.phase != TickEvent.PlayerTickEvent.Phase.END || event.world.getTotalWorldTime() % FSConfig.GENERAL.checkIntervalInTicks != 0) return;
+        for (Entity entity : event.world.loadedEntityList)
+        {
+            if (entity instanceof EntityItem)
+            {
+                EntityItem itemEntity = (EntityItem) entity;
+                ItemStack stack = itemEntity.getItem();
+                FSLogic.updateItemEntity(itemEntity, stack);
+            }
+        }
     }
 
     @SubscribeEvent
