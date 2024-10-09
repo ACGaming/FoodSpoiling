@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.Container;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
@@ -29,14 +28,15 @@ public class FSClientEvents
     {
         if (!FSConfig.TOOLTIPS.showFoodTooltip || event.getEntityPlayer() == null) return;
 
-        Container container = event.getEntityPlayer().openContainer;
-        String containerClass = container.getClass().getName();
         ItemStack stack = event.getItemStack();
 
         if (!FSLogic.canRot(stack)) return;
 
         long creationTime = FSData.hasCreationTime(stack) ? FSData.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
+        long elapsedTime = event.getEntityPlayer().world.getTotalWorldTime() - creationTime;
         int maxSpoilTicks = FSLogic.getTicksToRot(event.getEntityPlayer(), stack);
+        int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
+        int percentageRemaining = Math.max(0, Math.min(100, 100 - (int) ((elapsedTime * 100) / maxSpoilTicks)));
 
         if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack) && !FSConfig.ROTTING.rotInPlayerInvOnly)
         {
@@ -46,55 +46,20 @@ public class FSClientEvents
         if (maxSpoilTicks < 0)
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
+
+            maxSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
+            daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
+
+            String regularTooltip = displayRegularTooltip(daysRemaining, percentageRemaining);
+            if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
         }
         else if (!FSData.hasRemainingLifetime(stack))
         {
-            long elapsedTime = event.getEntityPlayer().world.getTotalWorldTime() - creationTime;
-            int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
-            int percentageRemaining = Math.max(0, Math.min(100, 100 - (int) ((elapsedTime * 100) / maxSpoilTicks)));
+            String regularTooltip = displayRegularTooltip(daysRemaining, percentageRemaining);
+            if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
 
-            StringBuilder tooltipBuilder = new StringBuilder();
-
-            if (FSConfig.TOOLTIPS.tooltipFoodDays)
-            {
-                if (daysRemaining > 0)
-                {
-                    tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining));
-                }
-                else
-                {
-                    tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_less_than_day"));
-                }
-
-                if (FSConfig.TOOLTIPS.tooltipFoodPercent)
-                {
-                    tooltipBuilder.append(" (").append(percentageRemaining).append("%)");
-                }
-            }
-            else if (FSConfig.TOOLTIPS.tooltipFoodPercent)
-            {
-                tooltipBuilder.append(percentageRemaining).append("%");
-            }
-
-            if (tooltipBuilder.length() > 0)
-            {
-                event.getToolTip().add(tooltipBuilder.toString());
-            }
-
-            if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack))
-            {
-                double lifetimeFactor = FSLogic.getCustomContainerConditions(event.getEntityPlayer(), stack);
-                if (lifetimeFactor > 0 && lifetimeFactor != 1)
-                {
-                    String bonusTooltip = I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor);
-                    if (FSConfig.TOOLTIPS.tooltipFoodPercent)
-                    {
-                        int percentageBonus = (int) ((lifetimeFactor - 1.0) * 100);
-                        bonusTooltip += " (" + (percentageBonus >= 0 ? "+" : "") + percentageBonus + "%)";
-                    }
-                    event.getToolTip().add(bonusTooltip);
-                }
-            }
+            String conditionsTooltip = displayConditionsTooltip(event.getEntityPlayer(), stack);
+            if (!conditionsTooltip.isEmpty()) event.getToolTip().add(conditionsTooltip);
         }
 
         if (event.getFlags().isAdvanced())
@@ -159,6 +124,51 @@ public class FSClientEvents
 
             return color;
         }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(ItemFood.class::isInstance).toArray(Item[]::new));
+    }
+
+    private static String displayRegularTooltip(int daysRemaining, int percentageRemaining)
+    {
+        StringBuilder tooltipBuilder = new StringBuilder();
+        if (FSConfig.TOOLTIPS.tooltipFoodDays)
+        {
+            if (daysRemaining > 1)
+            {
+                tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining));
+            }
+            else
+            {
+                tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_less_than_day"));
+            }
+
+            if (FSConfig.TOOLTIPS.tooltipFoodPercent)
+            {
+                tooltipBuilder.append(" (").append(percentageRemaining).append("%)");
+            }
+        }
+        else if (FSConfig.TOOLTIPS.tooltipFoodPercent)
+        {
+            tooltipBuilder.append(percentageRemaining).append("%");
+        }
+        return tooltipBuilder.toString();
+    }
+
+    private static String displayConditionsTooltip(EntityPlayer player, ItemStack stack)
+    {
+        StringBuilder tooltipBuilder = new StringBuilder();
+        if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(player, stack))
+        {
+            double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
+            if (lifetimeFactor > 0 && lifetimeFactor != 1)
+            {
+                tooltipBuilder.append(I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor));
+                if (FSConfig.TOOLTIPS.tooltipFoodPercent)
+                {
+                    int percentageBonus = (int) ((lifetimeFactor - 1.0) * 100);
+                    tooltipBuilder.append(" (").append(percentageBonus >= 0 ? "+" : "").append(percentageBonus).append("%)");
+                }
+            }
+        }
+        return tooltipBuilder.toString();
     }
 
     private static int getColor(float spoilPercentage)
