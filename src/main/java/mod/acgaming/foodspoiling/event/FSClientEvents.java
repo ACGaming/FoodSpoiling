@@ -38,6 +38,13 @@ public class FSClientEvents
         int daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
         int percentageRemaining = Math.max(0, Math.min(100, 100 - (int) ((elapsedTime * 100) / maxSpoilTicks)));
 
+        if (FSData.hasRemainingLifetime(stack))
+        {
+            maxSpoilTicks = FSData.getRemainingLifetime(stack);
+            daysRemaining = maxSpoilTicks / FSConfig.GENERAL.dayLengthInTicks;
+            percentageRemaining = (maxSpoilTicks * 100) / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+        }
+
         if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack) && !FSConfig.ROTTING.rotInPlayerInvOnly)
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
@@ -56,7 +63,7 @@ public class FSClientEvents
                 if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
             }
         }
-        else if (!FSData.hasRemainingLifetime(stack))
+        else
         {
             String regularTooltip = displayRegularTooltip(daysRemaining, percentageRemaining);
             if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
@@ -99,26 +106,21 @@ public class FSClientEvents
             long currentTime = Minecraft.getMinecraft().world.getTotalWorldTime();
             int maxSpoilTicks = FSLogic.getTicksToRot(player, stack);
 
-            if (maxSpoilTicks < 0)
-            {
-                return FSMaps.FOOD_TINTS.getOrDefault(FSData.getID(stack), 0xFFFFFF);
-            }
-
             float spoilPercentage;
-            if (FSData.hasRemainingLifetime(stack))
-            {
-                int remainingLifetime = FSData.getRemainingLifetime(stack);
-                spoilPercentage = 1.0F - (float) remainingLifetime / maxSpoilTicks;
-            }
-            else if (FSData.hasCreationTime(stack))
+            if (maxSpoilTicks > 0 && FSData.hasCreationTime(stack))
             {
                 long creationTime = FSData.getCreationTime(stack);
                 long elapsedTime = currentTime - creationTime;
                 spoilPercentage = Math.min(1.0F, (float) elapsedTime / maxSpoilTicks);
             }
+            else if (FSData.hasRemainingLifetime(stack))
+            {
+                int remainingLifetime = FSData.getRemainingLifetime(stack);
+                spoilPercentage = 1.0F - (float) remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+            }
             else
             {
-                return 0xFFFFFF;
+                return FSMaps.FOOD_TINTS.getOrDefault(FSData.getID(stack), 0xFFFFFF);
             }
 
             int color = getColor(spoilPercentage);
@@ -134,7 +136,7 @@ public class FSClientEvents
         StringBuilder tooltipBuilder = new StringBuilder();
         if (FSConfig.TOOLTIPS.tooltipFoodDays)
         {
-            if (daysRemaining > 1)
+            if (daysRemaining >= 1)
             {
                 tooltipBuilder.append(I18n.format("tooltip.foodspoiling.good_for_days", daysRemaining));
             }
