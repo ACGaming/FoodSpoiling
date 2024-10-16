@@ -67,17 +67,24 @@ public class FSLogic
             ItemStack stack = slot.getStack();
             if (canRot(stack))
             {
-                saveStack(stack, currentWorldTime);
+                saveStack(player, stack, i, currentWorldTime);
             }
         }
     }
 
-    public static void saveStack(ItemStack stack, long currentWorldTime)
+    public static void saveStack(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
         int totalSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
         int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
-        FSData.setRemainingLifetime(stack, remainingLifetime);
+        if (remainingLifetime > 0)
+        {
+            FSData.setRemainingLifetime(stack, remainingLifetime);
+        }
+        else
+        {
+            replaceStack(player, stack, inventorySlot);
+        }
     }
 
     /**
@@ -185,7 +192,7 @@ public class FSLogic
             // Pausing spoilage: Save remaining lifetime
             if (FSData.hasCreationTime(stack))
             {
-                FSLogic.saveStack(stack, currentWorldTime);
+                FSLogic.saveStack(player, stack, inventorySlot, currentWorldTime);
             }
             // Skip further spoilage logic since spoilage is paused
             return;
