@@ -50,8 +50,11 @@ public class FSClientEvents
             maxSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
             daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
 
-            String regularTooltip = displayRegularTooltip(daysRemaining, percentageRemaining);
-            if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
+            if (daysRemaining >= 0)
+            {
+                String regularTooltip = displayRegularTooltip(daysRemaining, percentageRemaining);
+                if (!regularTooltip.isEmpty()) event.getToolTip().add(regularTooltip);
+            }
         }
         else if (!FSData.hasRemainingLifetime(stack))
         {
