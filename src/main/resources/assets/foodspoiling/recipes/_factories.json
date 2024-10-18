@@ -1,0 +1,5 @@
+{
+  "recipes": {
+    "food_combining": "mod.acgaming.foodspoiling.recipe.FSCombiningRecipe$Factory"
+  }
+}

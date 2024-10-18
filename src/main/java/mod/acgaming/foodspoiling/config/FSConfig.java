@@ -45,11 +45,6 @@ public class FSConfig
 
     public static class Rotting
     {
-        @Config.RequiresMcRestart
-        @Config.Name("Allow Food Merge")
-        @Config.Comment("Allows merging the same rotting items with different rot times (uses worse food rot time)")
-        public boolean allowFoodMerge = true;
-
         @Config.Name("Container Conditions")
         @Config.Comment
             ({
