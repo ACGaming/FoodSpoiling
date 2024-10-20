@@ -68,24 +68,43 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
     {
         ItemStack resultStack = ItemStack.EMPTY;
         int outputAmount = 0;
-        long minTime = -1;
+        long minCreationTime = -1;
+        int minRemainingLifetime = -1;
 
         for (int i = 0; i < inv.getSizeInventory(); i++)
         {
             ItemStack stack = inv.getStackInSlot(i);
-            if (!stack.isEmpty() && FSLogic.canRot(stack) && (FSData.hasCreationTime(stack) || FSData.hasRemainingLifetime(stack)))
+            if (!stack.isEmpty() && FSLogic.canRot(stack))
             {
-                outputAmount++;
-                long currentTime = getMinimumTime(stack);
-
-                if (minTime == -1 || currentTime < minTime)
+                if (FSData.hasCreationTime(stack))
                 {
-                    minTime = currentTime;
+                    outputAmount++;
+
+                    long creationTime = FSData.getCreationTime(stack);
+                    if (minCreationTime == -1 || creationTime < minCreationTime)
+                    {
+                        minCreationTime = creationTime;
+                    }
+
+                    if (resultStack.isEmpty())
+                    {
+                        resultStack = stack.copy();
+                    }
                 }
-
-                if (resultStack.isEmpty())
+                else if (FSData.hasRemainingLifetime(stack))
                 {
-                    resultStack = stack.copy();
+                    outputAmount++;
+
+                    int remainingLifetime = FSData.getRemainingLifetime(stack);
+                    if (minRemainingLifetime == -1 || remainingLifetime < minRemainingLifetime)
+                    {
+                        minRemainingLifetime = remainingLifetime;
+                    }
+
+                    if (resultStack.isEmpty())
+                    {
+                        resultStack = stack.copy();
+                    }
                 }
             }
         }
@@ -96,7 +115,15 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
         }
 
         resultStack.setCount(outputAmount);
-        updateTime(resultStack, minTime);
+
+        if (FSData.hasCreationTime(resultStack) && minCreationTime != -1)
+        {
+            FSData.setCreationTime(resultStack, minCreationTime);
+        }
+        else if (FSData.hasRemainingLifetime(resultStack) && minRemainingLifetime != -1)
+        {
+            FSData.setRemainingLifetime(resultStack, minRemainingLifetime);
+        }
 
         return resultStack;
     }
@@ -118,34 +145,6 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
     public boolean isDynamic()
     {
         return true;
-    }
-
-    private long getMinimumTime(ItemStack stack)
-    {
-        if (FSData.hasCreationTime(stack))
-        {
-            return FSData.getCreationTime(stack);
-        }
-        else if (FSData.hasRemainingLifetime(stack))
-        {
-            return FSData.getRemainingLifetime(stack);
-        }
-        return -1;
-    }
-
-    private void updateTime(ItemStack resultStack, long minTime)
-    {
-        if (FSLogic.canRot(resultStack))
-        {
-            if (FSData.hasCreationTime(resultStack))
-            {
-                FSData.setCreationTime(resultStack, minTime);
-            }
-            else if (FSData.hasRemainingLifetime(resultStack))
-            {
-                FSData.setRemainingLifetime(resultStack, (int) minTime);
-            }
-        }
     }
 
     public static class Factory implements IRecipeFactory
