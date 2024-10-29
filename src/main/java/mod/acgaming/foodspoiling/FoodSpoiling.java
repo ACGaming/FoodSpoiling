@@ -4,7 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 
+import mod.acgaming.foodspoiling.event.FSClientEvents;
 import mod.acgaming.foodspoiling.logic.FSMaps;
 
 @Mod(modid = FoodSpoiling.MOD_ID, name = FoodSpoiling.NAME, version = FoodSpoiling.VERSION, acceptedMinecraftVersions = FoodSpoiling.ACCEPTED_VERSIONS)
@@ -21,5 +23,9 @@ public class FoodSpoiling
     {
         FSMaps.initializeFoodMaps();
         FSMaps.initializeContainerConditions();
+        if (FMLLaunchHandler.side().isClient())
+        {
+            FSClientEvents.registerColorHandlerItems();
+        }
     }
 }

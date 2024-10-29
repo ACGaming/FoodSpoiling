@@ -5,9 +5,7 @@ import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -89,16 +87,15 @@ public class FSClientEvents
         }
     }
 
-    @SubscribeEvent
-    public static void onRegisterColorHandlerItems(ColorHandlerEvent.Item event)
+    public static void registerColorHandlerItems()
     {
         if (!FSConfig.ROTTING.renderRottenState) return;
 
-        ItemColors itemColors = event.getItemColors();
+        ItemColors itemColors = Minecraft.getMinecraft().getItemColors();
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
             EntityPlayer player = Minecraft.getMinecraft().player;
-            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || !FSLogic.canRot(stack))
+            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative))
             {
                 return 0xFFFFFF;
             }
@@ -128,7 +125,7 @@ public class FSClientEvents
             FSMaps.FOOD_TINTS.put(FSData.getID(stack), color);
 
             return color;
-        }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(ItemFood.class::isInstance).toArray(Item[]::new));
+        }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(FSMaps.FOOD_EXPIRATION_DAYS::containsKey).toArray(Item[]::new));
     }
 
     private static String displayRegularTooltip(int daysRemaining, int percentageRemaining)
