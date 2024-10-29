@@ -85,9 +85,13 @@ public class FSConfig
             };
 
         @Config.RequiresMcRestart
-        @Config.Name("Render Rotten State")
-        @Config.Comment("Applies an increasing green tint on food items as they rot")
+        @Config.Name("Render Rotten Overlay")
+        @Config.Comment("Applies an increasing green tint on items as they rot")
         public boolean renderRottenState = true;
+
+        @Config.Name("Render Rotten Overlay Food Only")
+        @Config.Comment("When 'Render Rotten Overlay' is enabled, it only applies on items that extend from ItemFood.class")
+        public boolean renderRottenStateFoodOnly = true;
 
         @Config.Name("Rot In Creative Mode")
         @Config.Comment

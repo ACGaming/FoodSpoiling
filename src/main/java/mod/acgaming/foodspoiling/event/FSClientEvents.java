@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -95,7 +96,7 @@ public class FSClientEvents
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
             EntityPlayer player = Minecraft.getMinecraft().player;
-            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative))
+            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || (FSConfig.ROTTING.renderRottenStateFoodOnly && !(stack.getItem() instanceof ItemFood)))
             {
                 return 0xFFFFFF;
             }
