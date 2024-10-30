@@ -32,7 +32,7 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
         for (int i = 0; i < inv.getSizeInventory(); i++)
         {
             ItemStack invStack = inv.getStackInSlot(i);
-            if (!invStack.isEmpty() && FSLogic.canRot(invStack))
+            if (!invStack.isEmpty())
             {
                 if (!FSData.hasCreationTime(invStack) && !FSData.hasRemainingLifetime(invStack))
                 {
