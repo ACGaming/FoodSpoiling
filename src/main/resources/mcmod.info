@@ -5,6 +5,7 @@
     "description": "Spoiled for choice!",
     "version": "${version}",
     "mcversion": "${mcversion}",
+    "logoFile": "assets/foodspoiling/textures/logo.png",
     "url": "https://github.com/ACGaming/FoodSpoiling",
     "authorList": ["ACGaming"],
     "credits": "Ski_ for commissioning"
