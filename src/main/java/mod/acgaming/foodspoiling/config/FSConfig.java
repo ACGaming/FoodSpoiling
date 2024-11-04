@@ -56,6 +56,9 @@ public class FSConfig
         public String[] containerConditions =
             {
                 "net.minecraft.inventory.ContainerChest,1.2",
+                "com.mrcrayfish.furniture.gui.containers.ContainerFridge,1.8",
+                "net.blay09.mods.cookingforblockheads.container.ContainerFridge,1.8",
+                "sweetmagic.init.tile.container.ContainerFreezer,1.8"
             };
 
         @Config.Name("Days To Rot")
@@ -68,20 +71,32 @@ public class FSConfig
             })
         public String[] daysToRot =
             {
-                "minecraft:porkchop,minecraft:rotten_flesh,3",
-                "minecraft:fish,minecraft:rotten_flesh,3",
+                "minecraft:apple,minecraft:air,5",
+                "minecraft:baked_potato,minecraft:poisonous_potato,3",
                 "minecraft:beef,minecraft:rotten_flesh,3",
+                "minecraft:beetroot,minecraft:air,5",
+                "minecraft:beetroot_soup,minecraft:bowl,3",
+                "minecraft:bread,minecraft:air,4",
+                "minecraft:cake,minecraft:air,3",
+                "minecraft:carrot,minecraft:air,5",
                 "minecraft:chicken,minecraft:rotten_flesh,3",
-                "minecraft:rabbit,minecraft:rotten_flesh,3",
-                "minecraft:mutton,minecraft:rotten_flesh,3",
-                "minecraft:cooked_porkchop,minecraft:rotten_flesh,7",
-                "minecraft:cooked_fish,minecraft:rotten_flesh,7",
                 "minecraft:cooked_beef,minecraft:rotten_flesh,7",
                 "minecraft:cooked_chicken,minecraft:rotten_flesh,7",
-                "minecraft:cooked_rabbit,minecraft:rotten_flesh,7",
+                "minecraft:cooked_fish,minecraft:rotten_flesh,7",
                 "minecraft:cooked_mutton,minecraft:rotten_flesh,7",
-                "minecraft:apple,minecraft:air,5",
-                "minecraft:golden_apple,-1"
+                "minecraft:cooked_porkchop,minecraft:rotten_flesh,7",
+                "minecraft:cooked_rabbit,minecraft:rotten_flesh,7",
+                "minecraft:cookie,minecraft:air,5",
+                "minecraft:fish,minecraft:rotten_flesh,3",
+                "minecraft:golden_apple,-1",
+                "minecraft:melon,minecraft:air,5",
+                "minecraft:mushroom_stew,minecraft:bowl,3",
+                "minecraft:mutton,minecraft:rotten_flesh,3",
+                "minecraft:porkchop,minecraft:rotten_flesh,3",
+                "minecraft:potato,minecraft:poisonous_potato,7",
+                "minecraft:pumpkin_pie,minecraft:air,3",
+                "minecraft:rabbit,minecraft:rotten_flesh,3",
+                "minecraft:rabbit_stew,minecraft:bowl,3"
             };
 
         @Config.RequiresMcRestart
