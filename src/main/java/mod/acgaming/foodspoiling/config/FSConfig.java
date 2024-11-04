@@ -56,6 +56,7 @@ public class FSConfig
         public String[] containerConditions =
             {
                 "net.minecraft.inventory.ContainerChest,1.2",
+                "com.mrcrayfish.furniture.gui.containers.ContainerEski,1.8",
                 "com.mrcrayfish.furniture.gui.containers.ContainerFridge,1.8",
                 "net.blay09.mods.cookingforblockheads.container.ContainerFridge,1.8",
                 "sweetmagic.init.tile.container.ContainerFreezer,1.8"
