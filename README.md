@@ -127,3 +127,7 @@ tooltips {
     B:"Show Remaining Percentage"=true
 }
 ```
+
+---
+
+This mod was commissioned for Minecraft 1.12.2.
