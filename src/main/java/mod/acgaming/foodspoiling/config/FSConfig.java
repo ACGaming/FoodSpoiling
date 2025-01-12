@@ -65,7 +65,7 @@ public class FSConfig
         @Config.Name("Days To Rot")
         @Config.Comment
             ({
-                "Food items do not decay by default, and must be added below",
+                "Food items with unique rotting behavior",
                 "Format: 'modid:food_item,modid:rotten_item,days' |OR| 'modid:food_item,-1' for explicit tooltip to state \"Does not rot\"",
                 "Instead of 'modid', 'ore' can be used as a namespace for ore dictionary names",
                 "Any item added here will be given a tooltip that says \"Good for % days\" when unspoiled"
@@ -90,14 +90,18 @@ public class FSConfig
                 "minecraft:cookie,minecraft:air,5",
                 "minecraft:fish,minecraft:rotten_flesh,3",
                 "minecraft:golden_apple,-1",
+                "minecraft:golden_carrot,-1",
                 "minecraft:melon,minecraft:air,3",
                 "minecraft:mushroom_stew,minecraft:bowl,3",
                 "minecraft:mutton,minecraft:rotten_flesh,3",
+                "minecraft:poisonous_potato,-1",
                 "minecraft:porkchop,minecraft:rotten_flesh,3",
                 "minecraft:potato,minecraft:poisonous_potato,10",
                 "minecraft:pumpkin_pie,minecraft:air,4",
                 "minecraft:rabbit,minecraft:rotten_flesh,3",
                 "minecraft:rabbit_stew,minecraft:bowl,4",
+                "minecraft:rotten_flesh,-1",
+                "minecraft:spider_eye,-1",
 
                 // Miscellaneous
                 "vanillaplus:pumpkin_slice,minecraft:air,5",
@@ -616,6 +620,18 @@ public class FSConfig
                 "harvestcraft:saltitem,minecraft:air,-1",
                 "harvestcraft:vinegaritem,minecraft:air,-1"
             };
+
+        @Config.Name("Default Food Rotting")
+        @Config.Comment("Allows all items that extend from ItemFood.class to rot when not specified in 'Days To Rot'")
+        public boolean defaultFoodRotting = true;
+
+        @Config.Name("Default Food Rotting Days")
+        @Config.Comment
+            ({
+                "Specified days for all items that extend from ItemFood.class to rot when not specified in 'Days To Rot'",
+                "Requires 'Default Food Rotting' to be enabled"
+            })
+        public int defaultFoodRottingDays = 7;
 
         @Config.RequiresMcRestart
         @Config.Name("Render Rotten Overlay")

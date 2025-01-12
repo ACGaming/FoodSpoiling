@@ -5,6 +5,7 @@ import java.util.Map;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
@@ -47,6 +48,16 @@ public class FSMaps
                 }
             }
         }
+        if (FSConfig.ROTTING.defaultFoodRotting)
+        {
+            for (Item item : ForgeRegistries.ITEMS)
+            {
+                if (item instanceof ItemFood)
+                {
+                    processInputItem(item.getRegistryName().toString(), FSConfig.ROTTING.defaultFoodRottingDays);
+                }
+            }
+        }
     }
 
     public static void initializeContainerConditions()
@@ -79,6 +90,7 @@ public class FSMaps
                 List<ItemStack> oreItems = OreDictionary.getOres(path);
                 for (ItemStack oreItem : oreItems)
                 {
+                    if (FOOD_EXPIRATION_DAYS.containsKey(oreItem.getItem())) continue;
                     FOOD_EXPIRATION_DAYS.put(oreItem.getItem(), rotDays);
                     FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", rotDays, oreItem.getItem().getRegistryName());
                 }
@@ -86,7 +98,7 @@ public class FSMaps
             else
             {
                 Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(namespace, path));
-                if (item == null) return;
+                if (item == null || FOOD_EXPIRATION_DAYS.containsKey(item)) return;
                 FOOD_EXPIRATION_DAYS.put(item, rotDays);
                 FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", rotDays, item.getRegistryName());
             }
@@ -113,6 +125,7 @@ public class FSMaps
                 List<ItemStack> oreItems = OreDictionary.getOres(pathInput);
                 for (ItemStack oreItem : oreItems)
                 {
+                    if (FOOD_CONVERSIONS.containsKey(oreItem.getItem())) continue;
                     FOOD_CONVERSIONS.put(oreItem.getItem(), replacementItem);
                     FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacementItem.getRegistryName(), oreItem.getItem().getRegistryName());
                 }
@@ -120,7 +133,7 @@ public class FSMaps
             else
             {
                 Item originalItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemInputIdentifier));
-                if (originalItem == null) return;
+                if (originalItem == null || FOOD_CONVERSIONS.containsKey(originalItem)) return;
                 FOOD_CONVERSIONS.put(originalItem, replacementItem);
                 FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacementItem.getRegistryName(), originalItem.getRegistryName());
             }
