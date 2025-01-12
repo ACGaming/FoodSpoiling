@@ -6,7 +6,7 @@ A simple mod that checks for food items in any configurable inventory and increa
 
 ### Technical details
 
-Whenever a player first views an item, it gets a creation time applied to it. After that, the creation time is only compared to the current world time periodically. This way, it's as performance-friendly as it can get because nothing is ticked continuously and most rot indication is client-sided. If spoilage is paused via preserving containers or players logging off on multiplayer servers, a remaining lifetime value is applied to the item which gets calculated into a new creation time once spoilage is allowed to resume.
+Whenever a player first views an item, it gets a creation time applied to it. After that, the creation time is only compared to the current world time periodically. This way, it's as performance-friendly as it can get because nothing is ticked continuously and most rot indication is client-sided. If spoilage is paused via preserving containers or players logging off on multiplayer servers, a remaining lifetime value is applied to the item which gets calculated into a new creation time once spoilage is allowed to resume. Two or more stacks of food with different spoilage values can be combined in the crafting grid akin to damaged tools for convenience, applying the highest spoilage of all items to the combined stack.
 
 ### Configuration
 
