@@ -25,7 +25,7 @@ public class FSLogic
      */
     public static boolean canRot(ItemStack stack)
     {
-        return FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
+        return stack != ItemStack.EMPTY && FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem());
     }
 
     /**
