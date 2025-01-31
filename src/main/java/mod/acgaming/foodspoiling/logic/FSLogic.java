@@ -10,6 +10,7 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.text.TextComponentString;
 
 import mod.acgaming.foodspoiling.FoodSpoiling;
@@ -18,14 +19,16 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 public class FSLogic
 {
     /**
-     * Returns true if the given ItemStack is a food item that can rot, false otherwise.
+     * Checks if the given ItemStack is eligible for further processing
      *
-     * @param stack the stack to check
-     * @return true if the stack has a registered expiration time, false otherwise
+     * @param stack the ItemStack to check
+     * @return FAIL if the stack is empty or isn't listed to rot, PASS if explicitly listed as non-rotting, SUCCESS otherwise
      */
-    public static boolean canRot(ItemStack stack)
+    public static EnumActionResult canRot(ItemStack stack)
     {
-        return stack != ItemStack.EMPTY && FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem()) && FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) > 0;
+        if (stack.isEmpty() || !FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem())) return EnumActionResult.FAIL;
+        if (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) < 0) return EnumActionResult.PASS;
+        return EnumActionResult.SUCCESS;
     }
 
     /**
@@ -44,7 +47,7 @@ public class FSLogic
         {
             Slot slot = player.openContainer.inventorySlots.get(i);
             ItemStack stack = slot.getStack();
-            if (!canRot(stack)) continue;
+            if (canRot(stack) != EnumActionResult.SUCCESS) continue;
 
             updateRot(player, stack, i, currentWorldTime);
 
@@ -65,7 +68,7 @@ public class FSLogic
         {
             Slot slot = player.inventoryContainer.inventorySlots.get(i);
             ItemStack stack = slot.getStack();
-            if (canRot(stack))
+            if (canRot(stack) == EnumActionResult.SUCCESS)
             {
                 saveStack(player, stack, i, currentWorldTime);
             }

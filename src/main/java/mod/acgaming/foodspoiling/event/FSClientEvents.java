@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumActionResult;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -29,7 +30,12 @@ public class FSClientEvents
 
         ItemStack stack = event.getItemStack();
 
-        if (!FSLogic.canRot(stack)) return;
+        EnumActionResult canRot = FSLogic.canRot(stack);
+        if (canRot != EnumActionResult.SUCCESS)
+        {
+            if (canRot == EnumActionResult.PASS) event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
+            return;
+        }
 
         long creationTime = FSData.hasCreationTime(stack) ? FSData.getCreationTime(stack) : event.getEntityPlayer().world.getTotalWorldTime();
         long elapsedTime = event.getEntityPlayer().world.getTotalWorldTime() - creationTime;

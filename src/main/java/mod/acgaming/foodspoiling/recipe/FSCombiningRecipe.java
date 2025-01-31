@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.world.World;
 import net.minecraftforge.common.crafting.IRecipeFactory;
 import net.minecraftforge.common.crafting.JsonContext;
@@ -74,7 +75,7 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
         for (int i = 0; i < inv.getSizeInventory(); i++)
         {
             ItemStack stack = inv.getStackInSlot(i);
-            if (!stack.isEmpty() && FSLogic.canRot(stack))
+            if (FSLogic.canRot(stack) == EnumActionResult.SUCCESS)
             {
                 if (FSData.hasCreationTime(stack))
                 {
