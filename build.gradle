@@ -119,6 +119,8 @@ dependencies {
             transitive = false
         }
     }
+
+    implementation rfg.deobf('curse.maven:tough-as-nails-246391:2710969')
 }
 
 // Adds Access Transformer files to tasks
