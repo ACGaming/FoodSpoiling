@@ -13,7 +13,6 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mod.acgaming.foodspoiling.FoodSpoiling;
@@ -23,7 +22,7 @@ public class FSMaps
 {
     public static final Map<String, Double> CONTAINER_CONDITIONS = new Object2DoubleOpenHashMap<>();
     public static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
-    public static final Map<Item, Integer> FOOD_EXPIRATION_DAYS = new Object2IntOpenHashMap<>();
+    public static final Map<Item, Double> FOOD_EXPIRATION_DAYS = new Object2DoubleOpenHashMap<>();
     public static final Map<Integer, Integer> FOOD_TINTS = new Int2IntOpenHashMap();
     public static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
 
@@ -38,7 +37,7 @@ public class FSMaps
             {
                 String itemInputIdentifier = parts[0].trim();
                 String rotDaysString = parts[parts.length - 1].trim();
-                int rotDays = Integer.parseInt(rotDaysString);
+                double rotDays = Double.parseDouble(rotDaysString);
                 processInputItem(itemInputIdentifier, rotDays);
 
                 if (parts.length > 2)
@@ -77,7 +76,7 @@ public class FSMaps
         }
     }
 
-    private static void processInputItem(String itemIdentifier, int rotDays)
+    private static void processInputItem(String itemIdentifier, double rotDays)
     {
         String[] itemParts = itemIdentifier.split(":");
         if (itemParts.length >= 2)

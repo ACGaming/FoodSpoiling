@@ -47,7 +47,7 @@ public class FSClientEvents
         {
             maxSpoilTicks = FSData.getRemainingLifetime(stack);
             daysRemaining = maxSpoilTicks / FSConfig.GENERAL.dayLengthInTicks;
-            percentageRemaining = (maxSpoilTicks * 100) / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+            percentageRemaining = (int) ((maxSpoilTicks * 100) / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
         }
 
         if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack) && !FSConfig.ROTTING.rotInPlayerInvOnly)
@@ -59,7 +59,7 @@ public class FSClientEvents
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
 
-            maxSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
+            maxSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
             daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
 
             if (daysRemaining >= 0)
@@ -120,7 +120,7 @@ public class FSClientEvents
             else if (FSData.hasRemainingLifetime(stack))
             {
                 int remainingLifetime = FSData.getRemainingLifetime(stack);
-                spoilPercentage = 1.0F - (float) remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+                spoilPercentage = 1.0F - (float) (remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
             }
             else
             {

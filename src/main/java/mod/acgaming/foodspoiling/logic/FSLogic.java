@@ -78,7 +78,7 @@ public class FSLogic
     public static void saveStack(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
-        int totalSpoilTicks = FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks;
+        int totalSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
         int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
         if (remainingLifetime > 0)
         {
@@ -107,7 +107,7 @@ public class FSLogic
             Item item = stack.getItem();
             if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
-                ticksToRot = FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks;
+                ticksToRot = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks);
                 if (player != null && FSLogic.hasCustomContainerConditions(player, stack))
                 {
                     double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
