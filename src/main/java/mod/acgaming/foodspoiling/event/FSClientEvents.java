@@ -107,31 +107,39 @@ public class FSClientEvents
                 return 0xFFFFFF;
             }
 
+            int itemId = FSData.hasID(stack) ? FSData.getID(stack) : stack.hashCode();
             long currentTime = Minecraft.getMinecraft().world.getTotalWorldTime();
-            int maxSpoilTicks = FSLogic.getTicksToRot(player, stack);
 
-            float spoilPercentage;
-            if (maxSpoilTicks > 0 && FSData.hasCreationTime(stack))
+            // Check if we need to update the tint (every check interval)
+            if (currentTime % FSConfig.GENERAL.checkIntervalInTicks == 0 || !FSMaps.FOOD_TINTS.containsKey(itemId))
             {
-                long creationTime = FSData.getCreationTime(stack);
-                long elapsedTime = currentTime - creationTime;
-                spoilPercentage = Math.min(1.0F, (float) elapsedTime / maxSpoilTicks);
-            }
-            else if (FSData.hasRemainingLifetime(stack))
-            {
-                int remainingLifetime = FSData.getRemainingLifetime(stack);
-                spoilPercentage = 1.0F - (float) (remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
-            }
-            else
-            {
-                return FSMaps.FOOD_TINTS.getOrDefault(FSData.getID(stack), 0xFFFFFF);
+                // Determine spoil percentage
+                int maxSpoilTicks = FSLogic.getTicksToRot(player, stack);
+                float spoilPercentage;
+                if (maxSpoilTicks > 0 && FSData.hasCreationTime(stack))
+                {
+                    long creationTime = FSData.getCreationTime(stack);
+                    long elapsedTime = currentTime - creationTime;
+                    spoilPercentage = Math.min(1.0F, (float) elapsedTime / maxSpoilTicks);
+                }
+                else if (FSData.hasRemainingLifetime(stack))
+                {
+                    int remainingLifetime = FSData.getRemainingLifetime(stack);
+                    spoilPercentage = 1.0F - (float) (remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
+                }
+                else
+                {
+                    spoilPercentage = 0.0F;
+                }
+
+                // Update tint cache
+                int color = getColor(spoilPercentage);
+                FSMaps.FOOD_TINTS.put(itemId, color);
+                return color;
             }
 
-            int color = getColor(spoilPercentage);
-
-            FSMaps.FOOD_TINTS.put(FSData.getID(stack), color);
-
-            return color;
+            // Return cached tint
+            return FSMaps.FOOD_TINTS.getOrDefault(itemId, 0xFFFFFF);
         }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(FSMaps.FOOD_EXPIRATION_DAYS::containsKey).toArray(Item[]::new));
     }
 
