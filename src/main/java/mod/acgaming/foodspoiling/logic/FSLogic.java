@@ -284,6 +284,10 @@ public class FSLogic
                 stack.setCount(0);
             }
         }
+        else
+        {
+            stack.setCount(0);
+        }
     }
 
     /**
