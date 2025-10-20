@@ -151,10 +151,28 @@ public class FSLogic
      */
     public static void updateItemEntity(EntityItem itemEntity, ItemStack stack)
     {
-        long elapsedTime = itemEntity.world.getTotalWorldTime() - FSData.getCreationTime(stack);
+        // Skip if the stack can't rot
+        if (canRot(stack) != EnumActionResult.SUCCESS) return;
+
+        // If no ID exists, set it now
+        if (!FSData.hasID(stack))
+        {
+            FSData.setID(stack, stack.hashCode());
+        }
+
+        // If no creation time exists, set it to the current world time
+        long currentWorldTime = itemEntity.world.getTotalWorldTime();
+        if (!FSData.hasCreationTime(stack))
+        {
+            FSData.setCreationTime(stack, currentWorldTime);
+            return; // Skip spoilage check on first tick to avoid premature spoilage
+        }
+
+        long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
         int totalSpoilTicks = FSLogic.getTicksToRot(null, stack);
 
-        if (elapsedTime >= totalSpoilTicks)
+        // Only replace if the item has fully rotted
+        if (totalSpoilTicks > 0 && elapsedTime >= totalSpoilTicks)
         {
             FSLogic.replaceStack(itemEntity, stack, -1);
         }
