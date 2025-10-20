@@ -45,6 +45,11 @@ public class FSConfig
 
     public static class Rotting
     {
+        @Config.RequiresMcRestart
+        @Config.Name("Affect Item Entities")
+        @Config.Comment("Include dropped items in rot calculations")
+        public boolean affectItemEntities = true;
+
         @Config.Name("Container Conditions")
         @Config.Comment
             ({
