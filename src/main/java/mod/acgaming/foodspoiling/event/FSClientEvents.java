@@ -50,7 +50,7 @@ public class FSClientEvents
             percentageRemaining = (int) ((maxSpoilTicks * 100) / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
         }
 
-        if (FSLogic.hasCustomContainerConditions(event.getEntityPlayer(), stack) && !FSConfig.ROTTING.rotInPlayerInvOnly)
+        if (FSLogic.getLifetimeFactor(event.getEntityPlayer(), stack) != 1.0 && !FSConfig.ROTTING.rotInPlayerInvOnly)
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.stored_in_container"));
         }
@@ -164,9 +164,9 @@ public class FSClientEvents
     private static String displayConditionsTooltip(EntityPlayer player, ItemStack stack)
     {
         StringBuilder tooltipBuilder = new StringBuilder();
-        if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.hasCustomContainerConditions(player, stack))
+        if (FSConfig.TOOLTIPS.tooltipFoodDays && FSLogic.getLifetimeFactor(player, stack) != 1.0)
         {
-            double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
+            double lifetimeFactor = FSLogic.getLifetimeFactor(player, stack);
             if (lifetimeFactor > 0 && lifetimeFactor != 1)
             {
                 tooltipBuilder.append(I18n.format("tooltip.foodspoiling.lifetime_factor", lifetimeFactor));

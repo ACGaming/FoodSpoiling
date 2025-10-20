@@ -11,6 +11,7 @@ public class FSData
     public static final String TAG_ID = "ID";
     public static final String TAG_CREATION_TIME = "CreationTime";
     public static final String TAG_REMAINING_LIFETIME = "RemainingLifetime";
+    public static final String TAG_LAST_LIFETIME_FACTOR = "LastLifetimeFactor";
 
     public static void setCreationTime(ItemStack stack, long creationTime)
     {
@@ -49,6 +50,42 @@ public class FSData
     {
         NBTTagCompound tag = getNBTTagCompound(stack);
         return tag != null && tag.hasKey(TAG_REMAINING_LIFETIME);
+    }
+
+    public static void removeRemainingLifetime(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getSubCompound(FoodSpoiling.MOD_ID);
+        if (tag != null)
+        {
+            tag.removeTag(TAG_REMAINING_LIFETIME);
+        }
+    }
+
+    public static boolean hasLastLifetimeFactor(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getSubCompound(FoodSpoiling.MOD_ID);
+        return tag != null && tag.hasKey(TAG_LAST_LIFETIME_FACTOR);
+    }
+
+    public static double getLastLifetimeFactor(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        return tag.getDouble(TAG_LAST_LIFETIME_FACTOR);
+    }
+
+    public static void setLastLifetimeFactor(ItemStack stack, double factor)
+    {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(FoodSpoiling.MOD_ID);
+        tag.setDouble(TAG_LAST_LIFETIME_FACTOR, factor);
+    }
+
+    public static void removeLastLifetimeFactor(ItemStack stack)
+    {
+        NBTTagCompound tag = stack.getSubCompound(FoodSpoiling.MOD_ID);
+        if (tag != null)
+        {
+            tag.removeTag(TAG_LAST_LIFETIME_FACTOR);
+        }
     }
 
     public static void setID(ItemStack stack, int id)

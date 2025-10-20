@@ -70,16 +70,18 @@ public class FSLogic
             ItemStack stack = slot.getStack();
             if (canRot(stack) == EnumActionResult.SUCCESS)
             {
-                saveStack(player, stack, i, currentWorldTime);
+                saveRemainingLifetime(player, stack, i, currentWorldTime);
             }
         }
     }
 
-    public static void saveStack(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
+    public static void saveRemainingLifetime(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
+        double lastLifetimeFactor = FSData.hasLastLifetimeFactor(stack) ? FSData.getLastLifetimeFactor(stack) : 1.0;
         long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
-        int totalSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
-        int remainingLifetime = Math.max(0, totalSpoilTicks - (int) elapsedTime);
+        int baseSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+        int remainingBase = baseSpoilTicks - (int) (elapsedTime / lastLifetimeFactor);
+        int remainingLifetime = Math.max(0, remainingBase);
         if (remainingLifetime > 0)
         {
             FSData.setRemainingLifetime(stack, remainingLifetime);
@@ -108,9 +110,9 @@ public class FSLogic
             if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
             {
                 ticksToRot = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks);
-                if (player != null && FSLogic.hasCustomContainerConditions(player, stack))
+                if (player != null)
                 {
-                    double lifetimeFactor = FSLogic.getCustomContainerConditions(player, stack);
+                    double lifetimeFactor = getLifetimeFactor(player, stack);
                     ticksToRot = lifetimeFactor > 0 ? (int) (ticksToRot * lifetimeFactor) : -1;
                 }
             }
@@ -119,36 +121,25 @@ public class FSLogic
     }
 
     /**
-     * Returns true if the player has a custom container condition defined for the given {@link ItemStack}'s container,
-     * and the stack is not contained in the player's inventory, false otherwise.
+     * Gets the lifetime factor for the given stack in the player's open container.
+     * Defaults to 1.0 if not specified in the config or if rotInPlayerInvOnly restricts it.
      *
-     * @param player the player to check for custom container conditions
+     * @param player the player whose open container is being checked
      * @param stack  the stack to check
-     * @return true if the player has a custom container condition defined for the stack, and the stack is not
-     * contained in the player's inventory, false otherwise
+     * @return the lifetime factor (positive to modify rate, negative to pause)
      */
-    public static boolean hasCustomContainerConditions(EntityPlayer player, ItemStack stack)
+    public static double getLifetimeFactor(EntityPlayer player, ItemStack stack)
     {
-        if (FSConfig.ROTTING.rotInPlayerInvOnly) return true;
-        String containerClass = player.openContainer.getClass().getName();
-        return FSMaps.CONTAINER_CONDITIONS.containsKey(containerClass) && !player.inventoryContainer.getInventory().contains(stack);
-    }
-
-    /**
-     * Gets the custom container lifetime factor for the given {@link EntityPlayer}'s open container.
-     *
-     * @param player the player whose open container is being checked for a custom lifetime factor
-     * @return the custom lifetime factor associated with the player's open container's class name
-     */
-    public static double getCustomContainerConditions(EntityPlayer player, ItemStack stack)
-    {
-        if (FSConfig.ROTTING.rotInPlayerInvOnly)
+        if (player.inventoryContainer.getInventory().contains(stack))
         {
-            if (!player.inventoryContainer.getInventory().contains(stack)) return -1;
-            return 1;
+            return 1.0;
+        }
+        else if (FSConfig.ROTTING.rotInPlayerInvOnly)
+        {
+            return -1.0;
         }
         String containerClass = player.openContainer.getClass().getName();
-        return FSMaps.CONTAINER_CONDITIONS.get(containerClass);
+        return FSMaps.CONTAINER_CONDITIONS.getOrDefault(containerClass, 1.0);
     }
 
     /**
@@ -189,27 +180,45 @@ public class FSLogic
             FSData.setID(stack, stack.hashCode());
         }
 
-        // Check if the container pauses spoilage (negative value in CONTAINER_CONDITIONS)
-        if (player != null && FSLogic.hasCustomContainerConditions(player, stack) && FSLogic.getCustomContainerConditions(player, stack) < 0)
+        if (player == null) return;
+
+        double currentLifetimeFactor = getLifetimeFactor(player, stack);
+
+        if (currentLifetimeFactor < 0)
         {
-            // Pausing spoilage: Save remaining lifetime
+            // Pausing spoilage: Save remaining lifetime normalized to base (factor=1)
             if (FSData.hasCreationTime(stack))
             {
-                FSLogic.saveStack(player, stack, inventorySlot, currentWorldTime);
+                saveRemainingLifetime(player, stack, inventorySlot, currentWorldTime);
             }
-            // Skip further spoilage logic since spoilage is paused
+            // Skip further logic since spoilage is paused
             return;
         }
 
-        // Resuming spoilage: If item has paused spoilage (remaining lifetime), set new creation time
+        // Handle factor change for positive factors (including default 1.0)
+        double lastLifetimeFactor = FSData.hasLastLifetimeFactor(stack) ? FSData.getLastLifetimeFactor(stack) : 1.0;
+        if (lastLifetimeFactor != currentLifetimeFactor)
+        {
+            if (FSData.hasCreationTime(stack))
+            {
+                long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
+                long effectiveElapsed = (long) ((elapsedTime / lastLifetimeFactor) * currentLifetimeFactor);
+                long newCreationTime = currentWorldTime - effectiveElapsed;
+                FSData.setCreationTime(stack, newCreationTime);
+            }
+            FSData.setLastLifetimeFactor(stack, currentLifetimeFactor);
+        }
+
+        // Resuming spoilage: If item had paused spoilage (remaining lifetime), set new creation time, scaling remaining
         if (FSData.hasRemainingLifetime(stack))
         {
-            int remainingLifetime = FSData.getRemainingLifetime(stack);
+            int remainingBase = FSData.getRemainingLifetime(stack);
             int totalSpoilTicks = FSLogic.getTicksToRot(player, stack);
-
-            // Calculate the new creation time by subtracting remaining lifetime from the total spoil ticks
-            long newCreationTime = currentWorldTime - (totalSpoilTicks - remainingLifetime);
-            FSData.setCreationTime(stack, newCreationTime);  // Correct the creation time
+            long effectiveRemaining = (long) (remainingBase * currentLifetimeFactor);
+            long elapsed = totalSpoilTicks - effectiveRemaining;
+            long newCreationTime = currentWorldTime - elapsed;
+            FSData.setCreationTime(stack, newCreationTime);
+            FSData.removeRemainingLifetime(stack);
         }
 
         // If no creation time exists, set it now
