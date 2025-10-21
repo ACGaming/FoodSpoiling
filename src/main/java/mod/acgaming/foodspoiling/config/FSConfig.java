@@ -64,7 +64,9 @@ public class FSConfig
                 "com.mrcrayfish.furniture.gui.containers.ContainerEski,1.8",
                 "com.mrcrayfish.furniture.gui.containers.ContainerFridge,1.8",
                 "net.blay09.mods.cookingforblockheads.container.ContainerFridge,1.8",
-                "sweetmagic.init.tile.container.ContainerFreezer,1.8"
+                "sweetmagic.init.tile.container.ContainerFreezer,1.8",
+                "noppes.npcs.containers.ContainerNPCTrader,-1",
+                "noppes.npcs.containers.ContainerNPCTraderSetup,-1"
             };
 
         @Config.Name("Days To Rot")
@@ -594,8 +596,8 @@ public class FSConfig
                 "harvestcraft:ediblerootitem,minecraft:air,4",
                 "harvestcraft:sunflowerseedsitem,minecraft:air,180",
                 "harvestcraft:vanillaitem,minecraft:air,180",
-                "harvestcraft:saltitem,minecraft:air,-1",
-                "harvestcraft:vinegaritem,minecraft:air,-1",
+                "harvestcraft:saltitem,-1",
+                "harvestcraft:vinegaritem,-1",
                 "harvestcraft:oliveoilitem,minecraft:air,90",
                 "harvestcraft:mayoitem,minecraft:air,30",
                 "harvestcraft:mustardseedsitem,minecraft:air,180",
@@ -620,10 +622,10 @@ public class FSConfig
                 "harvestcraft:stockitem,minecraft:air,7",
                 "harvestcraft:sunfloweroilitem,minecraft:air,90",
                 "harvestcraft:vanillaextractitem,minecraft:air,180",
-                "harvestcraft:freshwateritem,minecraft:air,-1",
+                "harvestcraft:freshwateritem,-1",
                 "harvestcraft:freshmilkitem,minecraft:air,3",
-                "harvestcraft:saltitem,minecraft:air,-1",
-                "harvestcraft:vinegaritem,minecraft:air,-1"
+                "harvestcraft:saltitem,-1",
+                "harvestcraft:vinegaritem,-1"
             };
 
         @Config.Name("Default Food Rotting")
