@@ -7,7 +7,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumActionResult;
@@ -19,15 +18,19 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 public class FSLogic
 {
     /**
-     * Checks if the given ItemStack is eligible for further processing
+     * Checks if the given item stack is eligible for further processing.
      *
-     * @param stack the ItemStack to check
-     * @return FAIL if the stack is empty or isn't listed to rot, PASS if explicitly listed as non-rotting, SUCCESS otherwise
+     * @param stack the stack to check
+     * @return {@link EnumActionResult#FAIL} if the stack is empty or isn't listed to rot,
+     * {@link EnumActionResult#PASS} if explicitly listed as non-rotting,
+     * {@link EnumActionResult#SUCCESS} otherwise
      */
     public static EnumActionResult canRot(ItemStack stack)
     {
-        if (stack.isEmpty() || !FSMaps.FOOD_EXPIRATION_DAYS.containsKey(stack.getItem())) return EnumActionResult.FAIL;
-        if (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) < 0) return EnumActionResult.PASS;
+        if (stack.isEmpty()) return EnumActionResult.FAIL;
+        double days = getExpirationDays(stack);
+        if (Double.isNaN(days)) return EnumActionResult.FAIL;
+        if (days < 0) return EnumActionResult.PASS;
         return EnumActionResult.SUCCESS;
     }
 
@@ -58,6 +61,13 @@ public class FSLogic
         }
     }
 
+    /**
+     * Saves the remaining lifetime of all food items in the player's inventory. The remaining lifetime is calculated by
+     * subtracting the elapsed time from the total spoil time, and is then stored in the item's NBT data.
+     * If the remaining lifetime is zero or less, the item is replaced with a rotten equivalent.
+     *
+     * @param player the player whose inventory is being saved
+     */
     public static void saveInventory(EntityPlayer player)
     {
         if (player.world.isRemote || (player.isCreative() && !FSConfig.ROTTING.rotInCreative)) return;
@@ -75,11 +85,22 @@ public class FSLogic
         }
     }
 
+    /**
+     * Saves the remaining lifetime of a food item. The remaining lifetime is calculated by subtracting the elapsed time
+     * from the total spoil time, and is then stored in the item's NBT data. If the remaining lifetime is zero or less,
+     * the item is replaced with a rotten equivalent.
+     *
+     * @param player           the player whose inventory is being saved
+     * @param stack            the stack to save the remaining lifetime for
+     * @param inventorySlot    the slot in the player's inventory containing the stack
+     * @param currentWorldTime the current world time
+     */
     public static void saveRemainingLifetime(EntityPlayer player, ItemStack stack, int inventorySlot, long currentWorldTime)
     {
         double lastLifetimeFactor = FSData.hasLastLifetimeFactor(stack) ? FSData.getLastLifetimeFactor(stack) : 1.0;
         long elapsedTime = currentWorldTime - FSData.getCreationTime(stack);
-        int baseSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+        double days = getExpirationDays(stack);
+        int baseSpoilTicks = (int) (days * FSConfig.GENERAL.dayLengthInTicks);
         int remainingBase = baseSpoilTicks - (int) (elapsedTime / lastLifetimeFactor);
         int remainingLifetime = Math.max(0, remainingBase);
         if (remainingLifetime > 0)
@@ -106,13 +127,13 @@ public class FSLogic
         int ticksToRot = -1;
         if (stack != null)
         {
-            Item item = stack.getItem();
-            if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item))
+            double days = getExpirationDays(stack);
+            if (!Double.isNaN(days))
             {
-                ticksToRot = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(item) * FSConfig.GENERAL.dayLengthInTicks);
+                ticksToRot = (int) (days * FSConfig.GENERAL.dayLengthInTicks);
                 if (player != null)
                 {
-                    double lifetimeFactor = getLifetimeFactor(player, stack);
+                    double lifetimeFactor = FSLogic.getLifetimeFactor(player, stack);
                     ticksToRot = lifetimeFactor > 0 ? (int) (ticksToRot * lifetimeFactor) : -1;
                 }
             }
@@ -267,6 +288,7 @@ public class FSLogic
 
     /**
      * Replaces the given item stack with its rotten equivalent if it has fully spoiled.
+     * If no rotten equivalent is set, the stack count is set to 0.
      *
      * @param entity        the entity containing the stack to replace
      * @param stack         the stack to replace
@@ -274,38 +296,80 @@ public class FSLogic
      */
     private static void replaceStack(Entity entity, ItemStack stack, int inventorySlot)
     {
-        if (FSMaps.FOOD_CONVERSIONS.containsKey(stack.getItem()))
+        ItemStack conversion = getConversion(stack);
+        if (conversion != null)
         {
-            Item itemReplacement = FSMaps.FOOD_CONVERSIONS.get(stack.getItem());
-            if (itemReplacement != null)
+            ItemStack rottenStack = new ItemStack(conversion.getItem(), stack.getCount(), conversion.getMetadata());
+            if (entity instanceof EntityPlayer)
             {
-                ItemStack rottenStack = new ItemStack(itemReplacement, stack.getCount());
-
-                if (entity instanceof EntityPlayer)
-                {
-                    EntityPlayer player = (EntityPlayer) entity;
-                    player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
-                    player.openContainer.detectAndSendChanges();
-                }
-                else if (entity instanceof EntityItem)
-                {
-                    EntityItem itemEntity = (EntityItem) entity;
-                    itemEntity.setItem(rottenStack);
-                }
-                else
-                {
-                    FoodSpoiling.LOGGER.error("Invalid entity type for replacing item stack: {}", entity.getClass().getName());
-                }
+                EntityPlayer player = (EntityPlayer) entity;
+                player.openContainer.inventorySlots.get(inventorySlot).putStack(rottenStack);
+                player.openContainer.detectAndSendChanges();
+            }
+            else if (entity instanceof EntityItem)
+            {
+                EntityItem itemEntity = (EntityItem) entity;
+                itemEntity.setItem(rottenStack);
             }
             else
             {
-                stack.setCount(0);
+                FoodSpoiling.LOGGER.error("Invalid entity type for replacing item stack: {}", entity.getClass().getName());
             }
         }
         else
         {
             stack.setCount(0);
         }
+    }
+
+    /**
+     * Gets the expiration days for a given item stack.
+     * <p>
+     * The method first checks if an expiration time is set for the given item stack with its metadata. If no such
+     * expiration time is set, it checks for the item without its metadata. If no expiration time is set at all, the
+     * method returns Double.NaN.
+     *
+     * @param stack the item stack to get the expiration days for
+     * @return the expiration days for the given item stack, or Double.NaN if no expiration time is set
+     */
+    public static double getExpirationDays(ItemStack stack)
+    {
+        String reg = stack.getItem().getRegistryName().toString();
+        String regMeta = reg + ":" + stack.getMetadata();
+        if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(regMeta))
+        {
+            return FSMaps.FOOD_EXPIRATION_DAYS.get(regMeta);
+        }
+        if (FSMaps.FOOD_EXPIRATION_DAYS.containsKey(reg))
+        {
+            return FSMaps.FOOD_EXPIRATION_DAYS.get(reg);
+        }
+        return Double.NaN;
+    }
+
+    /**
+     * Gets the conversion item stack for a given item stack.
+     * <p>
+     * The method first checks if a conversion item stack is set for the given item stack with its metadata. If no such
+     * conversion item stack is set, it checks for the item without its metadata. If no conversion item stack is set at all, the
+     * method returns null.
+     *
+     * @param stack the item stack to get the conversion item stack for
+     * @return the conversion item stack for the given item stack, or null if no conversion item stack is set
+     */
+    private static ItemStack getConversion(ItemStack stack)
+    {
+        String reg = stack.getItem().getRegistryName().toString();
+        String regMeta = reg + ":" + stack.getMetadata();
+        if (FSMaps.FOOD_CONVERSIONS.containsKey(regMeta))
+        {
+            return FSMaps.FOOD_CONVERSIONS.get(regMeta);
+        }
+        if (FSMaps.FOOD_CONVERSIONS.containsKey(reg))
+        {
+            return FSMaps.FOOD_CONVERSIONS.get(reg);
+        }
+        return null;
     }
 
     /**

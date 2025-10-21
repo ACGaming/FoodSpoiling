@@ -21,8 +21,8 @@ import mod.acgaming.foodspoiling.config.FSConfig;
 public class FSMaps
 {
     public static final Map<String, Double> CONTAINER_CONDITIONS = new Object2DoubleOpenHashMap<>();
-    public static final Map<Item, Item> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
-    public static final Map<Item, Double> FOOD_EXPIRATION_DAYS = new Object2DoubleOpenHashMap<>();
+    public static final Map<String, ItemStack> FOOD_CONVERSIONS = new Object2ObjectOpenHashMap<>();
+    public static final Map<String, Double> FOOD_EXPIRATION_DAYS = new Object2DoubleOpenHashMap<>();
     public static final Map<Integer, Integer> FOOD_TINTS = new Int2IntOpenHashMap();
     public static final Map<EntityPlayer, Long> WARNING_TIMES = new Object2LongOpenHashMap<>();
 
@@ -33,19 +33,30 @@ public class FSMaps
         for (String entry : FSConfig.ROTTING.daysToRot)
         {
             String[] parts = entry.split(",");
-            if (parts.length >= 2)
-            {
-                String itemInputIdentifier = parts[0].trim();
-                String rotDaysString = parts[parts.length - 1].trim();
-                double rotDays = Double.parseDouble(rotDaysString);
-                processInputItem(itemInputIdentifier, rotDays);
+            if (parts.length < 2) continue;
 
-                if (parts.length > 2)
-                {
-                    String itemOutputIdentifier = parts[1].trim();
-                    processOutputItem(itemInputIdentifier, itemOutputIdentifier);
-                }
+            String inputStr = parts[0].trim();
+            String daysStr = parts[parts.length - 1].trim();
+
+            double days;
+            try
+            {
+                days = Double.parseDouble(daysStr);
             }
+            catch (NumberFormatException e)
+            {
+                continue;
+            }
+
+            ItemStack replacement = ItemStack.EMPTY;
+            if (parts.length >= 3)
+            {
+                String outputStr = parts[1].trim();
+                replacement = parseItemStack(outputStr);
+                if (replacement.isEmpty()) continue;
+            }
+
+            addToMaps(inputStr, days, replacement);
         }
         if (FSConfig.ROTTING.defaultFoodRotting)
         {
@@ -53,7 +64,12 @@ public class FSMaps
             {
                 if (item instanceof ItemFood)
                 {
-                    processInputItem(item.getRegistryName().toString(), FSConfig.ROTTING.defaultFoodRottingDays);
+                    String generalKey = item.getRegistryName().toString();
+                    if (!FOOD_EXPIRATION_DAYS.containsKey(generalKey))
+                    {
+                        FOOD_EXPIRATION_DAYS.put(generalKey, (double) FSConfig.ROTTING.defaultFoodRottingDays);
+                        FoodSpoiling.LOGGER.debug("Added default lifetime of {} days to {}", FSConfig.ROTTING.defaultFoodRottingDays, generalKey);
+                    }
                 }
             }
         }
@@ -76,65 +92,95 @@ public class FSMaps
         }
     }
 
-    private static void processInputItem(String itemIdentifier, double rotDays)
+    private static ItemStack parseItemStack(String str)
     {
-        String[] itemParts = itemIdentifier.split(":");
-        if (itemParts.length >= 2)
-        {
-            String namespace = itemParts[0];
-            String path = itemParts[1];
+        String[] parts = str.split(":");
+        if (parts.length < 2) return ItemStack.EMPTY;
 
-            if ("ore".equals(namespace))
+        ResourceLocation loc = new ResourceLocation(parts[0], parts[1]);
+        Item item = ForgeRegistries.ITEMS.getValue(loc);
+        if (item == null) return ItemStack.EMPTY;
+
+        int meta = 0;
+        if (parts.length == 3)
+        {
+            try
             {
-                List<ItemStack> oreItems = OreDictionary.getOres(path);
-                for (ItemStack oreItem : oreItems)
-                {
-                    if (FOOD_EXPIRATION_DAYS.containsKey(oreItem.getItem())) continue;
-                    FOOD_EXPIRATION_DAYS.put(oreItem.getItem(), rotDays);
-                    FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", rotDays, oreItem.getItem().getRegistryName());
-                }
+                meta = Integer.parseInt(parts[2]);
             }
-            else
+            catch (NumberFormatException e)
             {
-                Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(namespace, path));
-                if (item == null || FOOD_EXPIRATION_DAYS.containsKey(item)) return;
-                FOOD_EXPIRATION_DAYS.put(item, rotDays);
-                FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", rotDays, item.getRegistryName());
+                return ItemStack.EMPTY;
             }
         }
+
+        return new ItemStack(item, 1, meta);
     }
 
-    private static void processOutputItem(String itemInputIdentifier, String itemOutputIdentifier)
+    private static void addToMaps(String inputStr, double days, ItemStack replacement)
     {
-        String[] inputParts = itemInputIdentifier.split(":");
-        String[] outputParts = itemOutputIdentifier.split(":");
-        if (inputParts.length >= 2 && outputParts.length >= 2)
+        String[] inputParts = inputStr.split(":");
+        if (inputParts.length < 2) return;
+
+        String namespace = inputParts[0];
+        String path = inputParts[1];
+
+        int meta = OreDictionary.WILDCARD_VALUE;
+        if (inputParts.length == 3)
         {
-            String namespaceInput = inputParts[0];
-            String pathInput = inputParts[1];
-
-            String namespaceOutput = outputParts[0];
-            String pathOutput = outputParts[1];
-
-            Item replacementItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(namespaceOutput, pathOutput));
-            if (replacementItem == null) return;
-
-            if ("ore".equals(namespaceInput))
+            try
             {
-                List<ItemStack> oreItems = OreDictionary.getOres(pathInput);
-                for (ItemStack oreItem : oreItems)
+                meta = Integer.parseInt(inputParts[2]);
+            }
+            catch (NumberFormatException e)
+            {
+                return;
+            }
+        }
+
+        if (namespace.equals("ore"))
+        {
+            List<ItemStack> ores = OreDictionary.getOres(path);
+            for (ItemStack ore : ores)
+            {
+                if (ore.isEmpty()) continue;
+
+                String reg = ore.getItem().getRegistryName().toString();
+                String key = reg + ":" + ore.getMetadata();
+
+                if (FOOD_EXPIRATION_DAYS.containsKey(key)) continue;
+
+                FOOD_EXPIRATION_DAYS.put(key, days);
+                FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", days, key);
+
+                if (!replacement.isEmpty())
                 {
-                    if (FOOD_CONVERSIONS.containsKey(oreItem.getItem())) continue;
-                    FOOD_CONVERSIONS.put(oreItem.getItem(), replacementItem);
-                    FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacementItem.getRegistryName(), oreItem.getItem().getRegistryName());
+                    FOOD_CONVERSIONS.put(key, replacement.copy());
+                    FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacement, key);
                 }
             }
-            else
+        }
+        else
+        {
+            ResourceLocation loc = new ResourceLocation(namespace, path);
+            Item item = ForgeRegistries.ITEMS.getValue(loc);
+            if (item == null) return;
+
+            String key = loc.toString();
+            if (meta != OreDictionary.WILDCARD_VALUE)
             {
-                Item originalItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemInputIdentifier));
-                if (originalItem == null || FOOD_CONVERSIONS.containsKey(originalItem)) return;
-                FOOD_CONVERSIONS.put(originalItem, replacementItem);
-                FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacementItem.getRegistryName(), originalItem.getRegistryName());
+                key += ":" + meta;
+            }
+
+            if (FOOD_EXPIRATION_DAYS.containsKey(key)) return;
+
+            FOOD_EXPIRATION_DAYS.put(key, days);
+            FoodSpoiling.LOGGER.debug("Added a lifetime of {} days to {}", days, key);
+
+            if (!replacement.isEmpty())
+            {
+                FOOD_CONVERSIONS.put(key, replacement.copy());
+                FoodSpoiling.LOGGER.debug("Added {} as a replacement for {}", replacement, key);
             }
         }
     }

@@ -47,7 +47,7 @@ public class FSClientEvents
         {
             maxSpoilTicks = FSData.getRemainingLifetime(stack);
             daysRemaining = maxSpoilTicks / FSConfig.GENERAL.dayLengthInTicks;
-            percentageRemaining = (int) ((maxSpoilTicks * 100) / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
+            percentageRemaining = (int) ((maxSpoilTicks * 100) / (FSLogic.getExpirationDays(stack) * FSConfig.GENERAL.dayLengthInTicks));
         }
 
         if (FSLogic.getLifetimeFactor(event.getEntityPlayer(), stack) != 1.0 && !FSConfig.ROTTING.rotInPlayerInvOnly)
@@ -59,7 +59,7 @@ public class FSClientEvents
         {
             event.getToolTip().add(I18n.format("tooltip.foodspoiling.does_not_rot"));
 
-            maxSpoilTicks = (int) (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks);
+            maxSpoilTicks = (int) (FSLogic.getExpirationDays(stack) * FSConfig.GENERAL.dayLengthInTicks);
             daysRemaining = (int) ((maxSpoilTicks - elapsedTime) / FSConfig.GENERAL.dayLengthInTicks);
 
             if (daysRemaining >= 0)
@@ -125,7 +125,7 @@ public class FSClientEvents
                 else if (FSData.hasRemainingLifetime(stack))
                 {
                     int remainingLifetime = FSData.getRemainingLifetime(stack);
-                    spoilPercentage = 1.0F - (float) (remainingLifetime / (FSMaps.FOOD_EXPIRATION_DAYS.get(stack.getItem()) * FSConfig.GENERAL.dayLengthInTicks));
+                    spoilPercentage = 1.0F - (float) (remainingLifetime / (FSLogic.getExpirationDays(stack) * FSConfig.GENERAL.dayLengthInTicks));
                 }
                 else
                 {
@@ -140,7 +140,7 @@ public class FSClientEvents
 
             // Return cached tint
             return FSMaps.FOOD_TINTS.getOrDefault(itemId, 0xFFFFFF);
-        }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(FSMaps.FOOD_EXPIRATION_DAYS::containsKey).toArray(Item[]::new));
+        }, ForgeRegistries.ITEMS.getValuesCollection().stream().filter(item -> FSMaps.FOOD_EXPIRATION_DAYS.containsKey(item.getRegistryName().toString())).toArray(Item[]::new));
     }
 
     private static String displayRegularTooltip(int daysRemaining, int percentageRemaining)

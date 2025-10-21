@@ -71,7 +71,7 @@ public class FSConfig
         @Config.Comment
             ({
                 "Food items with unique rotting behavior",
-                "Format: 'modid:food_item,modid:rotten_item,days' |OR| 'modid:food_item,-1' for explicit tooltip to state \"Does not rot\"",
+                "Format: 'modid:food_item[:meta],modid:rotten_item[:rotten_meta],days' |OR| 'modid:food_item[:meta],-1' for explicit tooltip to state \"Does not rot\"",
                 "Instead of 'modid', 'ore' can be used as a namespace for ore dictionary names",
                 "Any item added here will be given a tooltip that says \"Good for % days\" when unspoiled"
             })
