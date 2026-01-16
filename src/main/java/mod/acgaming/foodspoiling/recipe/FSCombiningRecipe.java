@@ -12,6 +12,7 @@ import net.minecraftforge.common.crafting.IRecipeFactory;
 import net.minecraftforge.common.crafting.JsonContext;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
+import mod.acgaming.foodspoiling.config.FSConfig;
 import mod.acgaming.foodspoiling.logic.FSData;
 import mod.acgaming.foodspoiling.logic.FSLogic;
 
@@ -27,6 +28,11 @@ public class FSCombiningRecipe extends IForgeRegistryEntry.Impl<IRecipe> impleme
     @Override
     public boolean matches(InventoryCrafting inv, World world)
     {
+        if (FSConfig.GENERAL.limitCombiningCrafting && (inv.getWidth() > 2 || inv.getHeight() > 2))
+        {
+            return false;
+        }
+
         ItemStack firstStack = ItemStack.EMPTY;
         int matches = 0;
 

@@ -41,6 +41,14 @@ public class FSConfig
         @Config.Name("Debug Container Class Printing")
         @Config.Comment("Prints the class name of any container upon opening")
         public boolean debugContainerClass = false;
+
+        @Config.Name("Combining Recipe 2x2 Crafting")
+        @Config.Comment
+            ({
+                "Limits the combining recipe to the 2x2 inventory crafting grid",
+                "Enable to circumvent certain overlapping recipes"
+            })
+        public boolean limitCombiningCrafting = false;
     }
 
     public static class Rotting
