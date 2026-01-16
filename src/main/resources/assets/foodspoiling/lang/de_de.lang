@@ -1,0 +1,5 @@
+tooltip.foodspoiling.does_not_rot=Verdirbt nicht
+tooltip.foodspoiling.good_for_days=Haltbar für %s Tag(e)
+tooltip.foodspoiling.good_for_less_than_day=Haltbar für weniger als einen Tag
+tooltip.foodspoiling.lifetime_factor=Haltbarkeitsfaktor: %s
+tooltip.foodspoiling.stored_in_container=Wenn im geöffneten Behälter gelagert:
