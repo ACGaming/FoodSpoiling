@@ -1,5 +1,7 @@
 package mod.acgaming.foodspoiling.event;
 
+import java.util.Arrays;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.client.resources.I18n;
@@ -102,7 +104,10 @@ public class FSClientEvents
 
         itemColors.registerItemColorHandler((stack, tintIndex) -> {
             EntityPlayer player = Minecraft.getMinecraft().player;
-            if (player == null || (player.isCreative() && !FSConfig.ROTTING.rotInCreative) || (FSConfig.ROTTING.renderRottenStateFoodOnly && !(stack.getItem() instanceof ItemFood)))
+            if (player == null
+                || (player.isCreative() && !FSConfig.ROTTING.rotInCreative)
+                || (FSConfig.ROTTING.renderRottenStateFoodOnly && !(stack.getItem() instanceof ItemFood))
+                || Arrays.stream(FSConfig.ROTTING.renderRottenStateBlacklist).anyMatch(s -> s.equals(stack.getItem().getRegistryName().toString())))
             {
                 return 0xFFFFFF;
             }

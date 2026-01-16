@@ -657,6 +657,14 @@ public class FSConfig
         @Config.Comment("When 'Render Rotten Overlay' is enabled, it only applies on items that extend from ItemFood.class")
         public boolean renderRottenStateFoodOnly = true;
 
+        @Config.Name("Render Rotten Overlay Blacklist")
+        @Config.Comment
+            ({
+                "When 'Render Rotten Overlay' is enabled, it doesn't apply on items that are specified in this list",
+                "Format: 'modid:food_item'"
+            })
+        public String[] renderRottenStateBlacklist = {};
+
         @Config.Name("Rot In Creative Mode")
         @Config.Comment
             ({
